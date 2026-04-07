@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Re:리포트 [리리포트]</title>
+  <meta name="description" content="성장 기록을 아이의 자산으로 만들기, Re:리포트 [리리포트]">
+  <link rel="stylesheet" href="style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div id="app">
+    <!-- Header -->
+    <header class="app-header" id="app-header">
+      <div class="header-top">
+        <h1 class="logo">Re:리포트 <span class="logo-sub">[리리포트]</span></h1>
+        <div id="child-selector-container" class="child-selector-container" style="display: none;">
+          <select id="select-child" class="child-select"></select>
+          <button id="btn-add-child-header" class="btn-text-small">+ 아이 추가</button>
+        </div>
+      </div>
+      <p class="subtitle">아이를 평가하는 앱이 아니라, 아이를 더 잘 이해하도록 돕는 관찰의 도구입니다.</p>
+    </header>
+
+    <main class="content-area">
+
+      <!-- 0-1. 온보딩 화면 -->
+      <section id="screen-onboarding" class="screen">
+        <div class="slider-container" id="onboarding-slider">
+          <div class="slider-track" id="slider-track">
+            <!-- Slide 1 -->
+            <div class="slide active" data-index="0">
+              <h2 class="slide-title">아이를 더 잘 이해하는 기록</h2>
+              <p class="slide-desc">Re:리포트는<br>아이를 평가하는 앱이 아니라,<br>아이를 더 잘 이해하도록 돕는 관찰의 도구입니다.</p>
+            </div>
+            <!-- Slide 2 -->
+            <div class="slide" data-index="1">
+              <h2 class="slide-title">하루의 한 장면이면<br>충분해요</h2>
+              <p class="slide-desc">특별한 사건보다<br>평범한 하루 속 장면이<br>아이를 더 많이 말해줍니다.</p>
+              <div class="slide-box">
+                <ul class="slide-list">
+                  <li>울다가 다시 해본 순간</li>
+                  <li>친구와 부딪힌 순간</li>
+                  <li>오래 몰입한 순간</li>
+                </ul>
+              </div>
+            </div>
+            <!-- Slide 3 -->
+            <div class="slide" data-index="2">
+              <h2 class="slide-title">기록이 쌓이면<br>흐름이 보여요</h2>
+              <p class="slide-desc">아이에게 자주 보이는 모습,<br>반복되는 반응,<br>강점의 흐름이 조금씩 보이기 시작해요.</p>
+            </div>
+            <!-- Slide 4 -->
+            <div class="slide" data-index="3">
+              <h2 class="slide-title">아이를 바꾸기보다,<br>더 잘 이해해보세요</h2>
+              <p class="slide-desc">문제처럼 보이는 순간에도<br>아이를 이해할 수 있는 단서가<br>숨어 있을 수 있어요.</p>
+              <div class="slide-action">
+                <button id="btn-onboarding-start" class="btn-primary">관찰 시작하기</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="onboarding-controls">
+          <button id="btn-onboarding-prev" class="btn-nav" style="visibility: hidden;">이전</button>
+          <div class="indicator-container">
+            <span class="indicator active"></span>
+            <span class="indicator"></span>
+            <span class="indicator"></span>
+            <span class="indicator"></span>
+          </div>
+          <button id="btn-onboarding-next" class="btn-nav">다음</button>
+        </div>
+      </section>
+
+      <!-- 0-2. 아이 등록 / 프로필 화면 -->
+      <section id="screen-profile" class="screen">
+        <div class="profile-card">
+          <h2 class="profile-title">우리 아이 등록하기</h2>
+          <p class="profile-desc">아이를 더 잘 이해하기 위한 참고 정보예요.<br>정답처럼 고르지 않아도 괜찮고,<br>언제든 바꿀 수 있어요.</p>
+
+          <div class="form-group">
+            <label class="form-label">이름</label>
+            <input type="text" id="prof-name" class="form-input" placeholder="이름 또는 애칭">
+          </div>
+          <div class="form-group">
+            <label class="form-label">생년월일</label>
+            <input type="date" id="prof-birth" class="form-input">
+          </div>
+          <div class="form-group">
+            <label class="form-label">성별</label>
+            <div class="radio-group">
+              <label><input type="radio" name="prof-gender" value="M"> 남아</label>
+              <label><input type="radio" name="prof-gender" value="F"> 여아</label>
+            </div>
+          </div>
+
+          <h3 class="form-subtitle">기초 참고 정보</h3>
+          
+          <div class="form-group mt-3">
+            <label class="form-label">① 우리 아이는 평소 어떤 편인가요?</label>
+            <p class="form-help">아이를 더 자연스럽게 이해하는 데 참고돼요.</p>
+            <div class="multi-select-tags" id="tags-q1">
+              <button class="multi-tag" data-val="활동량이 많은 편이에요">활동량이 많은 편이에요</button>
+              <button class="multi-tag" data-val="차분한 편이에요">차분한 편이에요</button>
+              <button class="multi-tag" data-val="낯을 가리는 편이에요">낯을 가리는 편이에요</button>
+              <button class="multi-tag" data-val="새로운 것에 호기심이 많아요">새로운 것에 호기심이 많아요</button>
+              <button class="multi-tag" data-val="익숙한 걸 좋아하는 편이에요">익숙한 걸 좋아하는 편이에요</button>
+              <button class="multi-tag" data-val="감정 표현이 큰 편이에요">감정 표현이 큰 편이에요</button>
+              <button class="multi-tag" data-val="혼자 몰입하는 걸 좋아해요">혼자 몰입하는 걸 좋아해요</button>
+              <button class="multi-tag" data-val="사람들과 어울리는 걸 좋아해요">사람들과 어울리는 걸 좋아해요</button>
+            </div>
+          </div>
+
+          <div class="form-group mt-3">
+            <label class="form-label">② 우리 아이가 특히 몰입하는 활동은 무엇인가요?</label>
+            <p class="form-help">어떤 활동에서 성향이 드러나는지 이해하는 단서가 돼요.</p>
+            <div class="multi-select-tags" id="tags-q2">
+              <button class="multi-tag" data-val="블록 / 만들기">블록 / 만들기</button>
+              <button class="multi-tag" data-val="그림 / 색칠 / 만들기">그림 / 색칠 / 만들기</button>
+              <button class="multi-tag" data-val="책 읽기">책 읽기</button>
+              <button class="multi-tag" data-val="역할놀이 / 상상놀이">역할놀이 / 상상놀이</button>
+              <button class="multi-tag" data-val="숫자 / 규칙 / 퍼즐">숫자 / 규칙 / 퍼즐</button>
+              <button class="multi-tag" data-val="몸 움직이는 놀이">몸 움직이는 놀이</button>
+              <button class="multi-tag" data-val="자연 관찰 / 실험 / 탐색">자연 관찰 / 실험 / 탐색</button>
+              <button class="multi-tag" data-val="음악 / 춤 / 노래">음악 / 춤 / 노래</button>
+            </div>
+          </div>
+
+          <div class="form-group mt-3">
+            <label class="form-label">③ 우리 아이는 어떤 상황에서 힘들어하는 편인가요?</label>
+            <p class="form-help">감정이 움직이는 상황을 이해하는 데 참고돼요.</p>
+            <div class="multi-select-tags" id="tags-q3">
+              <button class="multi-tag" data-val="기다려야 할 때">기다려야 할 때</button>
+              <button class="multi-tag" data-val="계획이 바뀔 때">계획이 바뀔 때</button>
+              <button class="multi-tag" data-val="잘 안 될 때 / 실패할 때">잘 안 될 때 / 실패할 때</button>
+              <button class="multi-tag" data-val="친구와 부딪힐 때">친구와 부딪힐 때</button>
+              <button class="multi-tag" data-val="낯선 환경에 갈 때">낯선 환경에 갈 때</button>
+              <button class="multi-tag" data-val="너무 시끄럽거나 복잡할 때">너무 시끄럽거나 복잡할 때</button>
+              <button class="multi-tag" data-val="하고 싶던 걸 멈춰야 할 때">하고 싶던 걸 멈춰야 할 때</button>
+            </div>
+          </div>
+
+          <div class="form-group mt-3">
+            <label class="form-label">④ 요즘 가장 궁금한 부분은 무엇인가요?</label>
+            <p class="form-help">자주 보이는 모습 중에서 조금 더 중심적으로 살펴볼 곳을 골라주세요.</p>
+            <div class="multi-select-tags" id="tags-q4">
+              <button class="multi-tag" data-val="집중 / 몰입">집중 / 몰입</button>
+              <button class="multi-tag" data-val="감정 조절">감정 조절</button>
+              <button class="multi-tag" data-val="자기주도성">자기주도성</button>
+              <button class="multi-tag" data-val="친구 관계 / 사회성">친구 관계 / 사회성</button>
+              <button class="multi-tag" data-val="말 / 표현력">말 / 표현력</button>
+              <button class="multi-tag" data-val="자신감 / 도전">자신감 / 도전</button>
+              <button class="multi-tag" data-val="생활 습관 / 루틴">생활 습관 / 루틴</button>
+              <button class="multi-tag" data-val="전반적인 성장 흐름">전반적인 성장 흐름</button>
+            </div>
+          </div>
+
+          <button id="btn-save-profile" class="btn-primary" style="margin-top: 20px;">등록 완료</button>
+          <button id="btn-cancel-profile" class="btn-text" style="width:100%; text-align:center; margin-top:12px; display:none;">취소</button>
+        </div>
+      </section>
+      
+      <!-- 1. 기록 입력 화면 -->
+      <section id="screen-input" class="screen">
+        <p class="section-top-desc">완벽하게 적지 않아도 괜찮아요. 작은 장면 하나면 충분해요.</p>
+        <div class="input-card">
+          <div class="date-row">
+            <input type="date" id="record-date" class="date-input" aria-label="기록 날짜">
+            <button id="btn-favorite" class="btn-icon favorite-toggle" aria-label="즐겨찾기">☆</button>
+          </div>
+          
+          <div class="input-hint-toggle" id="hint-toggle">
+            이런 걸 떠올려보세요 💡
+          </div>
+          <div class="input-hint-box" id="hint-box" style="display:none;">
+            <ul>
+              <li>무엇을 하던 순간이었나요?</li>
+              <li>아이는 어떻게 반응했나요?</li>
+              <li>그 장면을 보고 어떤 마음이 들었나요?</li>
+            </ul>
+          </div>
+          
+          <textarea id="record-text" class="main-textarea" placeholder="무엇을 하던 순간이었는지,&#10;아이의 말이나 행동이 어땠는지 짧게 적어보세요." rows="4"></textarea>
+          
+          <div class="example-record-sec">
+            <span class="example-title">오늘은 이렇게 적어볼 수 있어요 (눌러서 바로 쓰기)</span>
+            <div class="template-list">
+              <div class="template-card" data-target="record-text" data-template="___을/를 하다가 ___ 반응을 보였다.">
+                <span class="tpl-text">___을/를 하다가 ___ 반응을 보였다.</span>
+                <span class="tpl-ex">예) 블록이 무너지자 바로 울음을 터뜨렸다.</span>
+              </div>
+              <div class="template-card" data-target="record-text" data-template="___ 상황에서 ___라고 말했다.">
+                <span class="tpl-text">___ 상황에서 ___라고 말했다.</span>
+                <span class="tpl-ex">예) 내가 도와주려 하니 "내가 할 거야"라고 했다.</span>
+              </div>
+              <div class="template-card" data-target="record-text" data-template="___할 때 ___ 표정/감정을 보였다.">
+                <span class="tpl-text">___할 때 ___ 표정/감정을 보였다.</span>
+                <span class="tpl-ex">예) 놀이기구 순서를 기다리는 게 싫어서 내내 짜증을 냈다.</span>
+              </div>
+              <div class="template-card" data-target="record-text" data-template="처음에는 ___했지만, 이후 ___ 모습이 보였다.">
+                <span class="tpl-text">처음에는 ___했지만, 이후 ___ 모습이 보였다.</span>
+                <span class="tpl-ex">예) 화가 나서 장난감을 던졌지만, 조금 지나고 다시 정리했다.</span>
+              </div>
+              <div class="template-card" data-target="record-text" data-template="___할 때 특히 ___ 모습이 인상 깊었다.">
+                <span class="tpl-text">___할 때 특히 ___ 모습이 인상 깊었다.</span>
+                <span class="tpl-ex">예) 자기가 고른 놀이를 할 때 훨씬 오래 집중했다.</span>
+              </div>
+            </div>
+          </div>
+          
+          <div class="tag-selection" style="display: flex; flex-direction: column; align-items: flex-start; gap: 8px;">
+            <div style="display: flex; align-items: baseline;">
+              <span class="tag-label">분류</span>
+              <span style="font-size: 11px; color: var(--color-text-mut); margin-left: 8px; font-weight: normal;">물어본 말은 '질문'으로 구분해 주시면 더 다양한 흐름을 읽을 수 있어요.</span>
+            </div>
+            <div class="tags">
+              <button class="tag-btn" data-type="말">말</button>
+              <button class="tag-btn" data-type="질문">질문</button>
+              <button class="tag-btn" data-type="행동">행동</button>
+              <button class="tag-btn" data-type="감정">감정</button>
+            </div>
+          </div>
+          
+          <div class="parent-note-container" style="margin-bottom: 24px;">
+            <div style="display: flex; align-items: baseline; gap: 8px; margin-bottom: 8px;">
+              <span class="tag-label" style="font-size: 14px; color: var(--color-text-main); font-weight: 600;">부모의 마음</span>
+              <span style="font-size: 12px; color: var(--color-text-mut);">(선택)</span>
+            </div>
+            <input type="text" id="record-parent-note" class="parent-note-input" style="margin-bottom: 8px;" placeholder="이 장면을 보며 떠오른 생각이나 느낌이 있다면 적어보세요">
+          </div>
+          
+          <button id="btn-save-record" class="btn-primary">기록 남기기</button>
+        </div>
+
+        <div class="recent-preview-area">
+          <h3 class="preview-title">방금 남긴 장면이 잘 쌓이고 있어요.</h3>
+          <div id="recent-preview-list" class="preview-list">
+            <!-- 동적으로 추가됨 -->
+          </div>
+        </div>
+      </section>
+
+      <!-- 2. 기록 리스트 화면 -->
+      <section id="screen-list" class="screen">
+        <p class="section-top-desc" style="margin-top: 10px; margin-bottom: 20px;">아이를 이해하는 작은 순간들이 차곡차곡 쌓여 있어요.</p>
+        
+        <div class="list-filter-container">
+          <button class="filter-chip active" data-filter="all">전체</button>
+          <button class="filter-chip" data-filter="말">말</button>
+          <button class="filter-chip" data-filter="질문">질문</button>
+          <button class="filter-chip" data-filter="행동">행동</button>
+          <button class="filter-chip" data-filter="감정">감정</button>
+          <button class="filter-chip" data-filter="favorite">⭐ 즐겨찾기</button>
+        </div>
+
+        <div class="data-manage-row">
+          <button id="btn-backup" class="btn-text-small">전체 백업하기 (JSON)</button>
+          <button id="btn-restore" class="btn-text-small">불러오기</button>
+          <input type="file" id="file-restore" accept=".json" style="display: none;">
+        </div>
+        <div id="record-list" class="record-list">
+          <!-- 동적으로 추가됨 -->
+        </div>
+      </section>
+
+      <!-- 3. 성장 리포트 화면 -->
+      <section id="screen-report" class="screen">
+        <!-- 리포트 대기 상태 (0~9개) -->
+        <div id="report-waiting-state" class="report-empty" style="display:none;">
+          <div class="empty-box">
+            <span class="empty-icon" id="waiting-icon">🌱</span>
+            <p id="waiting-title" style="font-weight: 700; font-size: 16px; color: var(--color-primary-dark); margin-bottom: 8px;">아직 아이를 읽어볼 만큼의 기록이 충분하지 않아요.</p>
+            <p id="waiting-desc" style="font-size: 14px; color: var(--color-text-main); margin-bottom: 24px;">작은 순간 몇 개만 더 남겨보세요.</p>
+            
+            <div class="progress-section">
+              <div class="progress-labels">
+                <span id="waiting-count">지금 0개의 기록이 모였어요</span>
+                <span>목표 10개</span>
+              </div>
+              <div class="progress-bar-bg">
+                <div class="progress-bar-fill" id="waiting-progress-fill"></div>
+              </div>
+            </div>
+
+            <div class="waiting-value-box">
+              <p class="value-title">기록이 10개 이상 쌓이면,</p>
+              <ul class="value-list">
+                <li>요즘 자주 보이는 모습</li>
+                <li>아이를 이해하는 단서</li>
+                <li>반복해서 드러나는 강점</li>
+                <li>감정이 움직이는 상황</li>
+                <li>부모가 도와주면 좋은 방향</li>
+              </ul>
+              <p class="value-desc">등을 조금씩 읽어볼 수 있어요.<br>평가가 아니라, 더 잘 이해하기 위한 도구랍니다.</p>
+            </div>
+
+            <button class="btn-primary btn-go-input" style="margin-top: 24px;">오늘 장면 남기기</button>
+          </div>
+        </div>
+
+        <div id="report-content-state" style="display:none;">
+          <!-- 하이라이트 인용구 -->
+          <div id="report-highlight" class="report-highlight">
+            <p class="highlight-quote">"기록 속에 자주 보이는 모습들을 바탕으로, 우리 아이를 조금 더 입체적으로 이해해보세요."</p>
+          </div>
+
+          <div class="report-container">
+            <!-- 무료 제공 영역 -->
+            <div class="free-area">
+              <div class="report-section">
+                <h3 class="section-title">1. 요즘 이런 모습이 보여요</h3>
+                <p id="report-sec-1" class="section-content">분석 중...</p>
+              </div>
+              <div class="report-section">
+                <h3 class="section-title">2. 이렇게 이해해볼 수 있어요</h3>
+                <p id="report-sec-2" class="section-content">분석 중...</p>
+              </div>
+              <div class="report-section highlighted-section">
+                <h3 class="section-title">3. 아이를 이해하는 단서</h3>
+                <p id="report-sec-3-summary" class="section-content">자주 보이는 모습 속에서 발견한 단서 영역</p>
+              </div>
+            </div>
+
+            <!-- 프리미엄 블러 영역 -->
+            <div class="premium-area">
+              <div class="premium-overlay">
+                <div class="premium-teasing">
+                  <h4>아이를 더 깊이 이해하기</h4>
+                  <p class="teasing-desc">이 아이에게 자주 드러나는 강점을 더 깊이 읽어보세요.<br>어떤 상황에서 감정이 크게 움직이는지 확인해보세요.<br>부모가 도와주면 좋은 방향을 조금 더 구체적으로 살펴보세요.</p>
+                  <button class="btn-premium">더 깊이 읽어보기</button>
+                </div>
+              </div>
+
+              <div class="blurred-content">
+                <div class="report-section">
+                  <h3 class="section-title">4. 상황별로 보이는 모습</h3>
+                  <p class="section-content">무료 영역에서 보여준 단서에 이어 구체적인 설명이 이어집니다.</p>
+                </div>
+                <div class="report-section">
+                  <h3 class="section-title">5. 이런 힘으로 읽을 수 있어요</h3>
+                  <p class="section-content">아이만의 특별한 잠재력을 발견해 줍니다.</p>
+                </div>
+                <div class="report-section">
+                  <h3 class="section-title">6. 이런 순간에 감정이 움직여요</h3>
+                  <p class="section-content">특정 자극이 아이의 감정에 미치는 영향을 분석합니다.</p>
+                </div>
+                <div class="report-section">
+                  <h3 class="section-title">7. 이렇게 도와주면 좋아요</h3>
+                  <p class="section-content">부모님이 일상에서 실천할 수 있는 코칭 팁입니다.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 4. 사용 가이드 화면 -->
+      <section id="screen-guide" class="screen">
+        <h2 class="guide-title">Re:리포트 [리리포트] 가이드</h2>
+        
+        <div class="guide-section highlight-guide">
+          <h3 class="guide-h3">어떤 순간을 기록하면 좋을까요?</h3>
+          <p class="guide-p">
+            “오늘 가장 기억에 남는 장면 하나”면 충분합니다.<br>
+            • 아이가 인상적인 말을 했을 때<br>
+            • 감정이 크게 올라왔을 때<br>
+            • 잘 안 되는 걸 다시 해보려 했을 때<br>
+            • 혼자 몰입한 순간이 있었을 때
+          </p>
+          <div class="guide-example-box">
+            <h4>[기록 예시 보기]</h4>
+            <p>"블록이 무너지자 울다가 다시 쌓기 시작했다."<br>
+            "동생이 장난감을 가져가자 화를 냈지만, 다른 걸 찾아왔다."<br>
+            "처음 보는 친구에게는 조용했지만, 집에 와서 계속 이야기했다."</p>
+            <p style="margin-top: 8px; font-size: 13px; color: var(--color-text-sub);">완벽한 기록보다, 진짜 순간이 더 중요해요.</p>
+          </div>
+        </div>
+
+        <div class="guide-accordion">
+          <div class="acc-item">
+            <button class="acc-header">Re:리포트 [리리포트]는 어떤 앱인가요?</button>
+            <div class="acc-content">
+              <p>Re:리포트는 아이를 평가하는 앱이 아니라, 아이를 더 잘 이해하기 위한 관찰 도구입니다. 아이의 말, 행동, 감정이 드러난 작은 순간을 기록하면, 그 안에서 반복되는 모습과 강점의 흐름을 조금씩 읽어볼 수 있어요.</p>
+            </div>
+          </div>
+          <div class="acc-item">
+            <button class="acc-header">이렇게 시작해보세요</button>
+            <div class="acc-content">
+              <ol style="padding-left: 20px; color: var(--color-text-mut);">
+                <li>아이를 등록해요</li>
+                <li>오늘 가장 기억에 남는 장면 한 가지를 적어보세요</li>
+                <li>기록이 쌓이면 아이를 이해하는 단서를 확인해보세요</li>
+              </ol>
+            </div>
+          </div>
+          <div class="acc-item">
+            <button class="acc-header">리포트는 이렇게 읽어보세요</button>
+            <div class="acc-content">
+              <p>리포트는 아이를 평가하거나 규정하는 결과표가 아니라, 아이에게 자주 보이는 모습 속에서 강점과 성장의 흐름을 읽어보는 도구입니다.<br><strong>“아, 우리 아이에게 이런 모습이 자주 보이는구나”<br>“이런 상황에서 이런 힘이 드러나는구나”</strong><br>하는 마음으로 단서들을 읽어보세요.</p>
+            </div>
+          </div>
+          <div class="acc-item">
+            <button class="acc-header">더 잘 쓰는 방법</button>
+            <div class="acc-content">
+              <ul style="padding-left: 20px; color: var(--color-text-mut);">
+                <li>짧고 구체적인 기록이 리포트를 더 풍성하게 만들어줘요.</li>
+                <li>특별한 날보다 평범한 일상의 순간들이 더 중요해요.</li>
+                <li>감정이 컸던 순간, 아이가 잘 해낸 순간의 관찰을 남겨주세요.</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+      </section>
+
+    </main>
+
+    <!-- Bottom Navigation -->
+    <nav class="bottom-nav" id="bottom-nav">
+      <button class="nav-btn" data-target="screen-input">
+        <span class="nav-icon">📝</span>
+        <span>기록</span>
+      </button>
+      <button class="nav-btn" data-target="screen-list">
+        <span class="nav-icon">📚</span>
+        <span>목록</span>
+      </button>
+      <button class="nav-btn" data-target="screen-report">
+        <span class="nav-icon">📊</span>
+        <span>리포트</span>
+      </button>
+      <!-- 기능/정보 탭 -->
+      <button class="nav-btn" data-target="screen-guide">
+        <span class="nav-icon">💡</span>
+        <span>가이드</span>
+      </button>
+    </nav>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
