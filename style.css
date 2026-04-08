@@ -332,14 +332,48 @@
   .premium-list li {
     font-size: 13px;
     color: var(--color-text-main);
-    padding: 9px 14px;
+    padding: 12px 16px;
     background: white;
     border-radius: var(--radius-sm);
     border-left: 3px solid var(--color-primary);
     font-weight: 500;
-    line-height: 1.4;
+    line-height: 1.5;
     box-shadow: 0 1px 4px rgba(0,0,0,0.05);
   }
+  /* 카드형 3개 항목 (체크 아이콘 포함) */
+  .premium-list-cards li {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 13px 16px;
+    border-left: none;
+    border-radius: var(--radius-md);
+    border: 1px solid rgba(138,191,163,0.3);
+    background: white;
+    box-shadow: 0 2px 8px rgba(62,134,101,0.07);
+  }
+  .premium-item-icon {
+    flex-shrink: 0;
+    width: 22px;
+    height: 22px;
+    background: var(--color-primary);
+    color: white;
+    font-size: 11px;
+    font-weight: 700;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 1px;
+  }
+  .premium-item-text {
+    flex: 1;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--color-text-main);
+    line-height: 1.5;
+  }
+
   .premium-emotion-text {
     font-size: 13px;
     color: var(--color-text-sub);
