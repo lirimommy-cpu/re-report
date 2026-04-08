@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Re:리포트 [리리포트]</title>
-  <meta name="description" content="성장 기록을 아이의 자산으로 만들기, Re:리포트 [리리포트]">
+  <meta name="description" content="아이의 말, 행동, 감정을 기록하면 우리 아이에게 자주 보이는 결이 보이기 시작해요. 평가가 아니라 이해를 위한 기록 도구, Re:리포트">
   <link rel="stylesheet" href="style.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -21,7 +21,7 @@
           <button id="btn-add-child-header" class="btn-text-small">+ 아이 추가</button>
         </div>
       </div>
-      <p class="subtitle">아이를 평가하는 앱이 아니라, 아이를 더 잘 이해하도록 돕는 관찰의 도구입니다.</p>
+      <p class="subtitle">평가가 아니라, 아이를 더 잘 이해하기 위한 기록 도구</p>
     </header>
 
     <main class="content-area">
@@ -30,10 +30,13 @@
       <section id="screen-onboarding" class="screen">
         <div class="slider-container" id="onboarding-slider">
           <div class="slider-track" id="slider-track">
-            <!-- Slide 1 -->
+            <!-- Slide 1: 메인 헤드라인 -->
             <div class="slide active" data-index="0">
-              <h2 class="slide-title">아이를 더 잘 이해하는 기록</h2>
-              <p class="slide-desc">Re:리포트는<br>아이를 평가하는 앱이 아니라,<br>아이를 더 잘 이해하도록 돕는 관찰의 도구입니다.</p>
+              <h2 class="slide-title hero-headline">아이를 바꾸기보다,<br>더 잘 이해하게 되는<br>기록</h2>
+              <p class="slide-desc">아이의 말, 행동, 질문, 감정을 그때그때 남겨보세요.<br>흩어진 순간들이 쌓이면,<br>우리 아이에게 자주 보이는 결이 보이기 시작해요.</p>
+              <div class="hero-differentiator">
+                <p class="hero-diff-text">한 번의 분석보다,<br>계속 쌓이는 관찰이 아이를 더 잘 보여줍니다.</p>
+              </div>
             </div>
             <!-- Slide 2 -->
             <div class="slide" data-index="1">
@@ -49,15 +52,23 @@
             </div>
             <!-- Slide 3 -->
             <div class="slide" data-index="2">
-              <h2 class="slide-title">기록이 쌓이면<br>흐름이 보여요</h2>
-              <p class="slide-desc">아이에게 자주 보이는 모습,<br>반복되는 반응,<br>강점의 흐름이 조금씩 보이기 시작해요.</p>
+              <h2 class="slide-title">기록이 쌓이면<br>아이가 보이기 시작해요</h2>
+              <p class="slide-desc">개별 기록 하나가 아니라,<br>여러 기록이 연결될 때<br>이 아이에게만 보이는 결이 드러나요.</p>
+              <div class="slide-box">
+                <ul class="slide-list">
+                  <li>관계 속에서 자신의 위치를 확인하려는 모습</li>
+                  <li>비교 상황에서 감정이 더 크게 움직이는 흐름</li>
+                  <li>잘 보이고 싶은 마음과 자기 기준이 함께 자라는 결</li>
+                </ul>
+              </div>
             </div>
-            <!-- Slide 4 -->
+            <!-- Slide 4: CTA -->
             <div class="slide" data-index="3">
-              <h2 class="slide-title">아이를 바꾸기보다,<br>더 잘 이해해보세요</h2>
-              <p class="slide-desc">문제처럼 보이는 순간에도<br>아이를 이해할 수 있는 단서가<br>숨어 있을 수 있어요.</p>
+              <h2 class="slide-title">GPT에 물어보는 것과<br>다른 이유가 있어요</h2>
+              <p class="slide-desc">한 번의 질문으로는 보이지 않아요.<br>기록이 쌓이고 연결될 때,<br>이 아이에게만 반복되는 패턴이 보여요.</p>
               <div class="slide-action">
-                <button id="btn-onboarding-start" class="btn-primary">관찰 시작하기</button>
+                <button id="btn-onboarding-start" class="btn-primary">첫 기록 남기기</button>
+                <p class="cta-sub-text">평가가 아니라,<br>아이를 더 잘 이해하기 위한 기록 도구예요.</p>
               </div>
             </div>
           </div>
@@ -301,10 +312,13 @@
         </div>
 
         <div id="report-content-state" style="display:none;">
-          <!-- 리포트 메타 배너 -->
+          <!-- 메타 배너 -->
           <div id="report-meta-banner" class="report-meta-banner">
-            <span id="report-meta-text">최근 10개의 기록 흐름을 바탕으로 읽어본 리포트예요.</span>
+            <span id="report-meta-text">최근 10개의 기록을 연결해 읽어본 리포트예요.</span>
           </div>
+
+          <!-- 상단 안내 문구 -->
+          <p class="report-subtitle">평가가 아니라, 아이를 더 잘 이해하기 위한 리포트예요.</p>
 
           <!-- 하이라이트 인용구 -->
           <div id="report-highlight" class="report-highlight">
@@ -324,18 +338,34 @@
               </div>
               <div class="report-section">
                 <h3 class="section-title">3. 아이를 이해하는 단서</h3>
-                <p id="report-sec-3" class="section-content">자주 보이는 모습 속에서 발견한 단서 영역</p>
+                <p id="report-sec-3" class="section-content">분석 중...</p>
               </div>
             </div>
 
-            <!-- 프리미엄 영역 (테스트 모드: 노출됨) -->
+            <!-- 프리미엄 브릿지 + 콘텐츠 -->
             <div class="premium-area" id="premium-area">
-              <div class="premium-toggle-bar">
-                <span class="premium-label-tag">프리미엄</span>
-                <span class="premium-label-text">성장 흐름 깊이 읽기</span>
-                <button id="btn-premium-toggle" class="btn-premium-toggle">펼쳐보기 ▼</button>
+
+              <!-- 브릿지: 무료→유료 전환 -->
+              <div class="premium-bridge">
+                <h3 class="premium-bridge-title">아이를 더 깊게 읽어보아요</h3>
+                <p class="premium-bridge-desc">이 아이는 언제 더 흔들리고,<br>어떤 말과 환경에서 더 편안해지는지까지 이어서 볼 수 있어요.</p>
+                <p class="premium-bridge-desc">지금 보이는 모습이 어떤 강점으로 이어질 수 있는지,<br>부모가 어떻게 도와주면 좋을지도 함께 살펴볼 수 있어요.</p>
+
+                <p class="premium-list-title">프리미엄 리포트에서 볼 수 있어요</p>
+                <ul class="premium-list">
+                  <li>이전보다 달라진 모습의 흐름 읽기</li>
+                  <li>이 아이가 더 흔들리는 상황과 맥락</li>
+                  <li>이 아이 안에 자라는 강점의 씨앗</li>
+                  <li>감정이 크게 움직이는 구체적인 순간</li>
+                  <li>부모가 바로 써볼 수 있는 말과 반응</li>
+                  <li>이 힘이 더 잘 자라는 환경과 방향</li>
+                </ul>
+
+                <p class="premium-emotion-text">아이를 바꾸기보다,<br>더 정확히 이해하고 더 잘 도와주고 싶은 부모를 위한 리포트예요.</p>
+                <button id="btn-premium-toggle" class="btn-premium-main">프리미엄 리포트 이어서 보기 →</button>
               </div>
 
+              <!-- 프리미엄 콘텐츠 (토글) -->
               <div id="premium-content" class="premium-content" style="display:none;">
                 <div class="report-section">
                   <h3 class="section-title">4. 이전보다 이렇게 달라진 모습이 보여요</h3>
@@ -349,19 +379,20 @@
                   <h3 class="section-title">6. 이런 힘으로 읽을 수 있어요</h3>
                   <p id="report-sec-6" class="section-content">분석 중...</p>
                 </div>
-                <div class="report-section">
+                <div class="report-section premium-section-highlight">
                   <h3 class="section-title">7. 이런 순간에 감정이 움직여요</h3>
                   <p id="report-sec-7" class="section-content">분석 중...</p>
                 </div>
-                <div class="report-section">
+                <div class="report-section premium-section-highlight">
                   <h3 class="section-title">8. 이렇게 도와주면 좋아요</h3>
                   <p id="report-sec-8" class="section-content">분석 중...</p>
                 </div>
-                <div class="report-section">
+                <div class="report-section premium-section-key">
                   <h3 class="section-title">9. 이 힘을 더 잘 자라게 하려면</h3>
                   <p id="report-sec-9" class="section-content">분석 중...</p>
                 </div>
               </div>
+
             </div>
           </div>
         </div>
