@@ -271,7 +271,7 @@
         <div id="report-waiting-state" class="report-empty" style="display:none;">
           <div class="empty-box">
             <span class="empty-icon" id="waiting-icon">🌱</span>
-            <p id="waiting-title" style="font-weight: 700; font-size: 16px; color: var(--color-primary-dark); margin-bottom: 8px;">아직 아이를 읽어볼 만큼의 기록이 충분하지 않아요.</p>
+            <p id="waiting-title" style="font-weight: 700; font-size: 16px; color: var(--color-primary-dark); margin-bottom: 8px;">아직 아이를 읽어볼 만큽의 기록이 충분하지 않아요.</p>
             <p id="waiting-desc" style="font-size: 14px; color: var(--color-text-main); margin-bottom: 24px;">작은 순간 몇 개만 더 남겨보세요.</p>
             
             <div class="progress-section">
@@ -293,7 +293,7 @@
                 <li>감정이 움직이는 상황</li>
                 <li>부모가 도와주면 좋은 방향</li>
               </ul>
-              <p class="value-desc">등을 조금씩 읽어볼 수 있어요.<br>평가가 아니라, 더 잘 이해하기 위한 도구랍니다.</p>
+              <p class="value-desc">등을 조금씩 읽어볼 수 있어요.<br>평가가 아니라, 더 잘 이해하기 위한 도구랜니다.</p>
             </div>
 
             <button class="btn-primary btn-go-input" style="margin-top: 24px;">오늘 장면 남기기</button>
@@ -301,9 +301,14 @@
         </div>
 
         <div id="report-content-state" style="display:none;">
+          <!-- 리포트 메타 배너 -->
+          <div id="report-meta-banner" class="report-meta-banner">
+            <span id="report-meta-text">최근 10개의 기록 흐름을 바탕으로 읽어본 리포트예요.</span>
+          </div>
+
           <!-- 하이라이트 인용구 -->
           <div id="report-highlight" class="report-highlight">
-            <p class="highlight-quote">"기록 속에 자주 보이는 모습들을 바탕으로, 우리 아이를 조금 더 입체적으로 이해해보세요."</p>
+            <p class="highlight-quote" id="report-highlight-text">&ldquo;…&rdquo;</p>
           </div>
 
           <div class="report-container">
@@ -319,7 +324,7 @@
               </div>
               <div class="report-section highlighted-section">
                 <h3 class="section-title">3. 아이를 이해하는 단서</h3>
-                <p id="report-sec-3-summary" class="section-content">자주 보이는 모습 속에서 발견한 단서 영역</p>
+                <p id="report-sec-3" class="section-content">자주 보이는 모습 속에서 발견한 단서 영역</p>
               </div>
             </div>
 
@@ -328,27 +333,35 @@
               <div class="premium-overlay">
                 <div class="premium-teasing">
                   <h4>아이를 더 깊이 이해하기</h4>
-                  <p class="teasing-desc">이 아이에게 자주 드러나는 강점을 더 깊이 읽어보세요.<br>어떤 상황에서 감정이 크게 움직이는지 확인해보세요.<br>부모가 도와주면 좋은 방향을 조금 더 구체적으로 살펴보세요.</p>
+                  <p class="teasing-desc">이전 기록과 비교해 달라진 점, 상황별로 보이는 모습,<br>감정이 움직이는 순간과 도와주는 방향까지<br>조금 더 입체적으로 읽어보세요.</p>
                   <button class="btn-premium">더 깊이 읽어보기</button>
                 </div>
               </div>
 
               <div class="blurred-content">
                 <div class="report-section">
-                  <h3 class="section-title">4. 상황별로 보이는 모습</h3>
-                  <p class="section-content">무료 영역에서 보여준 단서에 이어 구체적인 설명이 이어집니다.</p>
+                  <h3 class="section-title">4. 이전보다 이렇게 달라진 모습이 보여요</h3>
+                  <p class="section-content">이전 기록과 최근 기록의 흐름을 비교해 변화를 읽어드립니다.</p>
                 </div>
                 <div class="report-section">
-                  <h3 class="section-title">5. 이런 힘으로 읽을 수 있어요</h3>
-                  <p class="section-content">아이만의 특별한 잠재력을 발견해 줍니다.</p>
+                  <h3 class="section-title">5. 상황별로 보이는 모습</h3>
+                  <p class="section-content">어떤 상황에서 어떤 모습이 더 선명하게 드러나는지 구체적으로 살펴드립니다.</p>
                 </div>
                 <div class="report-section">
-                  <h3 class="section-title">6. 이런 순간에 감정이 움직여요</h3>
+                  <h3 class="section-title">6. 이런 힘으로 읽을 수 있어요</h3>
+                  <p class="section-content">아이만의 특별한 잠재력을 발견해 드립니다.</p>
+                </div>
+                <div class="report-section">
+                  <h3 class="section-title">7. 이런 순간에 감정이 움직여요</h3>
                   <p class="section-content">특정 자극이 아이의 감정에 미치는 영향을 분석합니다.</p>
                 </div>
                 <div class="report-section">
-                  <h3 class="section-title">7. 이렇게 도와주면 좋아요</h3>
+                  <h3 class="section-title">8. 이렇게 도와주면 좋아요</h3>
                   <p class="section-content">부모님이 일상에서 실천할 수 있는 코칭 팁입니다.</p>
+                </div>
+                <div class="report-section">
+                  <h3 class="section-title">9. 이 힘을 더 잘 자라게 하려면</h3>
+                  <p class="section-content">아이의 고유한 결이 더 잘 피어날 수 있는 환경과 방향을 제시합니다.</p>
                 </div>
               </div>
             </div>

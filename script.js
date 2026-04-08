@@ -581,84 +581,109 @@ function handleEdit(id) {
   }
 }
 
-// --- AI Mock Engine (Warm, Strengths-focused Tone) ---
+// --- AI Report Engine v2 ---
+// 정렬 기준: 1순위 관찰날짜(date), 2순위 생성시간(createdAt)
+// 구조: 장면 → 반복 → 해석 (연령 맥락 + 아이 고유 결)
+// 섹션: 하이라이트 / 1.요즘 이런 모습 / 2.이렇게 이해 / 3.단서
 function generateReport() {
   const records = getCurrentChildRecords();
   const profile = state.profiles.find(p => p.id === state.currentChildId);
 
   const waitingState = document.getElementById('report-waiting-state');
-  
   if (waitingState) waitingState.style.display = 'none';
   if (reportContentState) reportContentState.style.display = 'none';
 
   if (!profile || records.length < 10) {
     if (waitingState) waitingState.style.display = 'flex';
-    
-    const wIcon = document.getElementById('waiting-icon');
+    const wIcon  = document.getElementById('waiting-icon');
     const wTitle = document.getElementById('waiting-title');
-    const wDesc = document.getElementById('waiting-desc');
+    const wDesc  = document.getElementById('waiting-desc');
     const wCount = document.getElementById('waiting-count');
-    const wFill = document.getElementById('waiting-progress-fill');
-    
+    const wFill  = document.getElementById('waiting-progress-fill');
     if (records.length < 5) {
-      if(wIcon) wIcon.textContent = '🌱';
-      if(wTitle) wTitle.textContent = '아직 아이를 읽어볼 만큼의 기록이 충분하지 않아요.';
-      if(wDesc) wDesc.textContent = '작은 순간 몇 개만 더 남겨보세요.';
+      if (wIcon)  wIcon.textContent  = '🌱';
+      if (wTitle) wTitle.textContent = '아직 아이를 읽어볼 만큼의 기록이 충분하지 않아요.';
+      if (wDesc)  wDesc.textContent  = '작은 순간 몇 개만 더 남겨보세요.';
     } else {
-      if(wIcon) wIcon.textContent = '🌿';
-      if(wTitle) wTitle.textContent = '기록이 조금씩 쌓이고 있어요.';
-      if(wDesc) wDesc.innerHTML = '10개 이상부터 더 또렷한 흐름을 읽어볼 수 있어요.';
+      if (wIcon)  wIcon.textContent  = '🌿';
+      if (wTitle) wTitle.textContent = '기록이 조금씩 쌓이고 있어요.';
+      if (wDesc)  wDesc.innerHTML    = '10개 이상부터 더 또렷한 흐름을 읽어볼 수 있어요.';
     }
-    
-    if(wCount) wCount.textContent = `지금 ${records.length}개의 기록이 모였어요`;
-    if(wFill) {
+    if (wCount) wCount.textContent = `지금 ${records.length}개의 기록이 모였어요`;
+    if (wFill) {
       const pct = Math.min((records.length / 10) * 100, 100);
       setTimeout(() => { wFill.style.width = `${pct}%`; }, 50);
     }
-    
     return;
   }
 
   if (reportContentState) reportContentState.style.display = 'block';
 
-  let emotionCount = 0; let actionCount = 0; let talkCount = 0; let questionCount = 0;
-  
-  records.slice(0, 30).forEach(r => {
-    let weight = 1.0;
-    if (Date.now() - r.createdAt < (7*24*60*60*1000)) weight += 0.5;
-    if (r.favorite) weight += 0.5;
-    if (r.parentNote) weight += 1.0;
+  // ── 관찰 날짜 기준 정렬 → 최근 10개 snapshot ──
+  const sorted = [...records].sort((a, b) => {
+    const dA = a.date || '', dB = b.date || '';
+    if (dA !== dB) return dA < dB ? -1 : 1;
+    return (a.createdAt || 0) - (b.createdAt || 0);
+  });
+  const snap = sorted.slice(-10);
 
-    if (r.types.includes("감정")) emotionCount += weight;
-    if (r.types.includes("행동")) actionCount += weight;
-    if (r.types.includes("말")) talkCount += weight;
-    if (r.types.includes("질문")) questionCount += weight;
+  // ── 태그 가중치 집계 ──
+  let eC = 0, aC = 0, tC = 0, qC = 0;
+  snap.forEach(r => {
+    let w = 1.0;
+    if (r.favorite) w += 0.5;
+    if (r.parentNote && r.parentNote.trim()) w += 1.0;
+    if (r.types.includes('감정')) eC += w;
+    if (r.types.includes('행동')) aC += w;
+    if (r.types.includes('말'))   tC += w;
+    if (r.types.includes('질문')) qC += w;
   });
 
-  const maxType = Math.max(emotionCount, actionCount, talkCount, questionCount);
-  let sec1, sec2, sec3;
+  const name = profile.name;
+  const max = Math.max(eC, aC, tC, qC);
 
-  if (maxType === emotionCount) {
-    sec1 = `최근 남겨주신 기록을 보면, 우리 ${profile.name}이는 뜻대로 되지 않는 순간이나 낯선 환경에 놓였을 때 기분이 어떻게 변하는지 다양한 표정과 몸짓으로 드러내는 장면들이 반복해서 나타나요.`;
-    sec2 = `이런 모습들은 단순히 투정을 부리는 것이 아니라, 스스로 올라오는 낯선 감정들을 숨기지 않고 밖으로 꺼내어 표현하려는 시도들로 읽힙니다.\n특히 평소 [${profile.concerns[0] || '감정'}]에 대해 세심하게 반응해주신 덕분에 자신의 내면을 꽤 선명하게 인지하고 있어요.`;
-    sec3 = "상황을 서둘러 해결하기보다, 먼저 자신의 감정을 살피고 꺼내놓는 방식으로 세상을 받아들이고 있어요.";
-  } else if (maxType === actionCount) {
-    sec1 = `요즘 우리 ${profile.name}이는 새로운 놀이나 낯선 공간을 마주했을 때, 주저하기보다 일단 먼저 손과 발로 부딪히며 탐색해 보는 장면들이 유독 자주 관찰됩니다.`;
-    sec2 = "자꾸 넘어지면서도 다시 해보는 이런 반복은, 머리로 이해하기보다 직접 겪은 실패와 성공의 감각을 통해 진짜 내 것을 만들어가려는 아이만의 훌륭한 강점이에요.";
-    sec3 = "설명으로 듣고 끝내기보다는, 온몸으로 직접 부딪혀가며 원리를 파악하는 방식으로 일상을 탐험하고 있어요.";
-  } else if (maxType === questionCount && questionCount > 0) {
-    sec1 = `최근 기록 속에 가장 많이 보이는 모습은, 일상의 당연해 보이는 현상이나 주변 사람들의 행동에 대해 무심코 넘기지 않고 이유를 되묻거나 꼼꼼히 확인하는 장면들이에요.`;
-    sec2 = "이 상황에서 보이는 이런 잦은 질문들은 반항이나 단순한 호기심을 넘어, 퍼즐 조각 같은 세상의 조각들을 연결해 자기만의 지식과 원리로 단단하게 엮어보려는 지적 탐구심의 단서랍니다.";
-    sec3 = "보이는 현상을 그저 수용하기보다, 관계와 세상 속에서 이유를 묻고 확인하며 자신만의 세계를 넓히고 있어요.";
+  // ── 메타 배너 ──
+  const metaEl = document.getElementById('report-meta-text');
+  if (metaEl) metaEl.textContent = '최근 10개의 기록 흐름을 바탕으로 읽어본 리포트예요.';
+
+  // ── 패턴별 문장 생성 ──
+  let highlight, sec1, sec2, sec3;
+
+  if (max === eC && eC > 0) {
+    highlight = `${name}이는 자신에게 올라오는 감정을 숨기지 않고 꺼내보려는 힘이 있어요.`;
+    sec1 = `최근 남겨주신 기록들을 보면, ${name}이는 뜻대로 되지 않는 순간이나 낯선 상황에 놓였을 때 기분이 어떻게 달라지는지 표정이나 몸짓으로 꽤 또렷하게 드러내는 장면들이 반복해서 나타나요. 이 시기 아이들에게 감정이 크게 올라오는 건 비교적 자연스럽게 보이는 모습이기도 해요. 그 안에서도 ${name}이는 그 감정을 안으로 눌러두기보다, 표현을 통해 스스로 인식하고 밖으로 꺼내보려는 결이 더 선명하게 보여요.`;
+    sec2 = `단순히 투정처럼 보일 수 있지만, 이 장면들은 올라오는 낯선 감정을 숨기지 않고 표현하려는 시도들로 읽혀요. 발달적으로 흔한 장면일 수 있지만, ${name}이는 그 안에서 감정을 말이나 몸짓으로 붙잡아보려는 힘도 함께 자라고 있어 보여요. 겉으로는 예민하게 보일 수 있지만, 그 안에는 자신의 내면을 꽤 선명하게 인식하고 있다는 단서가 함께 보여요.`;
+    sec3 = `${name}이를 관찰할 때, 감정이 올라오는 순간 "그게 속상했나 봐"처럼 먼저 이름을 붙여주시면 어떨까요? 직접 해결해주는 것보다, 이 아이가 자신의 감정을 더 선명하게 알아채어 갈 수 있는 작은 경험이 쌓여요.`;
+
+  } else if (max === aC && aC > 0) {
+    highlight = `${name}이는 몸으로 직접 부딪히며 세상을 파악해가는 방식을 갖고 있어요.`;
+    sec1 = `요즘 ${name}이는 새로운 놀이나 낯선 공간을 마주했을 때, 주저하기보다 일단 손과 발로 직접 탐색해보는 장면들이 반복해서 관찰돼요. 잘 안 되는 상황에서도 다시 시도하는 모습이 자주 보여요. 이 시기에 몸으로 직접 해보려는 충동이 강한 건 자연스럽게 보이기도 하지만, ${name}이는 그 안에서 포기보다 재도전을 선택하는 흐름이 유독 더 일관되게 보여요.`;
+    sec2 = `자꾸 넘어지면서도 다시 해보는 반복은, 머리로 이해하기보다 직접 겪은 실패와 성공의 감각을 통해 자기 것을 만들어가려는 방식으로 읽혀요. 겉으로는 고집처럼 보일 수 있지만, 그 안에는 스스로 결론에 도달하고 싶다는 자기 주도적인 탐구심이 함께 걸려 있어 보여요.`;
+    sec3 = `${name}이를 관찰할 때, 실패하는 장면에서 바로 도와주기보다 "어떻게 하면 될 것 같아?"라고 물어봐 주시면 어떨까요? 이 아이가 스스로 방법을 찾아가는 흐름을 더 잘 드러낼 수 있어요.`;
+
+  } else if (max === qC && qC > 0) {
+    highlight = `${name}이는 눈앞의 장면을 그냥 넘기지 않고 이유를 찾으려는 힘이 있어요.`;
+    sec1 = `최근 기록 속에 가장 자주 보이는 모습은, 일상의 당연해 보이는 현상이나 주변 사람들의 행동에 대해 무심코 지나치지 않고 이유를 되묻거나 꼼꼼히 확인하는 장면들이에요. 이 시기에 확인하고 싶은 질문들이 자주 올라오는 건 자연스럽기도 해요. 그 안에서도 ${name}이는 답을 들은 뒤 다음 질문으로 이어가거나, 관계 속 자신의 위치를 확인하려는 질문이 더 반복적으로 보여요.`;
+    sec2 = `이 잦은 질문들은 단순한 호기심이나 반항을 넘어, 자신이 보고 느끼는 것들 사이의 연결고리를 찾아 스스로의 세계를 만들어가려는 지적 탐구심의 단서랍니다. 발달적으로 흔한 장면일 수 있지만, ${name}이는 그 안에서 보이는 현상을 그냥 수용하기보다 이유를 붙잡아보려는 결이 더 선명하게 보여요.`;
+    sec3 = `${name}이의 질문에 "왜 그럴까? 너는 어떻게 생각해?"라고 되물어보세요. 답을 바로 주는 것보다, 아이가 스스로 생각을 이어갈 수 있는 공간을 열어주는 것이 이 아이의 탐구심이 더 잘 피어나는 방향이에요.`;
+
   } else {
-    sec1 = `요즘 ${profile.name}이의 기록에서는, 무언가가 마음대로 되지 않거나 누군가의 도움이 필요한 상황에서 울음으로 터뜨리기보다 자기가 원하는 바를 단어로 연결해 전달하려는 장면들이 눈에 띄게 반복되고 있어요.`;
-    sec2 = "이런 모습은 감정에 압도당하기 쉬운 순간에도 어떤 말을 써야 타인과 갈등을 조율하고 상황을 납득시킬 수 있을지 고민하는, 아주 치열하고 사회적인 성장의 과정으로 이해할 수 있습니다.";
-    sec3 = "어려운 상황에서도 말로 충분히 표현하고 조율하며 단단하게 안전감을 찾아가고 있어요.";
+    highlight = `${name}이는 자신이 원하는 걸 말로 표현하고 연결하려는 힘이 자라고 있어요.`;
+    sec1 = `요즘 ${name}이의 기록에서는, 무언가가 마음대로 되지 않거나 누군가의 도움이 필요한 상황에서 울음보다 먼저 말로 자기 상황을 설명하거나 요청하려는 장면들이 반복되고 있어요. 이 시기에 자기 주장이 강해지는 건 자연스러운 흐름이기도 해요. 그 안에서도 ${name}이는 감정을 터뜨리는 것보다 말로 연결하려는 시도가 더 자주 보여요.`;
+    sec2 = `감정에 압도당하기 쉬운 순간에도 어떤 말을 써야 타인과 상황을 조율할 수 있는지 찾아가는 이 모습은, 아이 나름의 사회적인 성장의 과정으로 이해해볼 수 있어요. 겉으로는 고집처럼 보일 수 있지만, 그 안에는 자신의 뜻을 납득 가능한 언어로 전달하고픈 욕구가 함께 걸려 있어 보여요.`;
+    sec3 = `${name}이가 말로 표현하려 할 때, 끊기 전에 끝까지 들어주시는 것만으로도 아이가 말의 힘을 믿게 되는 경험이 쌓여요. "그래서 어떻게 하고 싶었어?"라는 질문 하나가 좋은 관찰의 시작이 될 수 있어요.`;
   }
 
-  document.getElementById('report-sec-1').textContent = sec1;
-  document.getElementById('report-sec-2').textContent = sec2;
-  document.getElementById('report-sec-3-summary').textContent = sec3;
+  // ── DOM 삽입 ──
+  const hlEl = document.getElementById('report-highlight-text');
+  if (hlEl) hlEl.textContent = '\u201c' + highlight + '\u201d';
+
+  const s1 = document.getElementById('report-sec-1');
+  const s2 = document.getElementById('report-sec-2');
+  const s3 = document.getElementById('report-sec-3');
+  if (s1) s1.textContent = sec1;
+  if (s2) s2.textContent = sec2;
+  if (s3) s3.textContent = sec3;
 }
 
 // --- Backup & Restore ---
