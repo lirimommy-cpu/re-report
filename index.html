@@ -293,7 +293,7 @@
                 <li>감정이 움직이는 상황</li>
                 <li>부모가 도와주면 좋은 방향</li>
               </ul>
-              <p class="value-desc">등을 조금씩 읽어볼 수 있어요.<br>평가가 아니라, 더 잘 이해하기 위한 도구랜니다.</p>
+              <p class="value-desc">등을 조금씩 읽어볼 수 있어요.<br>평가가 아니라, 더 잘 이해하기 위한 도구입니다.</p>
             </div>
 
             <button class="btn-primary btn-go-input" style="margin-top: 24px;">오늘 장면 남기기</button>
@@ -322,46 +322,44 @@
                 <h3 class="section-title">2. 이렇게 이해해볼 수 있어요</h3>
                 <p id="report-sec-2" class="section-content">분석 중...</p>
               </div>
-              <div class="report-section highlighted-section">
+              <div class="report-section">
                 <h3 class="section-title">3. 아이를 이해하는 단서</h3>
                 <p id="report-sec-3" class="section-content">자주 보이는 모습 속에서 발견한 단서 영역</p>
               </div>
             </div>
 
-            <!-- 프리미엄 블러 영역 -->
-            <div class="premium-area">
-              <div class="premium-overlay">
-                <div class="premium-teasing">
-                  <h4>아이를 더 깊이 이해하기</h4>
-                  <p class="teasing-desc">이전 기록과 비교해 달라진 점, 상황별로 보이는 모습,<br>감정이 움직이는 순간과 도와주는 방향까지<br>조금 더 입체적으로 읽어보세요.</p>
-                  <button class="btn-premium">더 깊이 읽어보기</button>
-                </div>
+            <!-- 프리미엄 영역 (테스트 모드: 노출됨) -->
+            <div class="premium-area" id="premium-area">
+              <div class="premium-toggle-bar">
+                <span class="premium-label-tag">프리미엄</span>
+                <span class="premium-label-text">성장 흐름 깊이 읽기</span>
+                <button id="btn-premium-toggle" class="btn-premium-toggle">펼쳐보기 ▼</button>
               </div>
 
-              <div class="blurred-content">
+              <div id="premium-content" class="premium-content" style="display:none;">
                 <div class="report-section">
                   <h3 class="section-title">4. 이전보다 이렇게 달라진 모습이 보여요</h3>
-                  <p class="section-content">이전 기록과 최근 기록의 흐름을 비교해 변화를 읽어드립니다.</p>
+                  <p id="report-sec-4" class="section-content">분석 중...</p>
                 </div>
                 <div class="report-section">
                   <h3 class="section-title">5. 상황별로 보이는 모습</h3>
-                  <p class="section-content">어떤 상황에서 어떤 모습이 더 선명하게 드러나는지 구체적으로 살펴드립니다.</p>
+                  <p id="report-sec-5" class="section-content">분석 중...</p>
                 </div>
                 <div class="report-section">
                   <h3 class="section-title">6. 이런 힘으로 읽을 수 있어요</h3>
-                  <p class="section-content">아이만의 특별한 잠재력을 발견해 드립니다.</p>
+                  <p id="report-sec-6" class="section-content">분석 중...</p>
                 </div>
                 <div class="report-section">
                   <h3 class="section-title">7. 이런 순간에 감정이 움직여요</h3>
-                  <p class="section-content">특정 자극이 아이의 감정에 미치는 영향을 분석합니다.</p>
+                  <p id="report-sec-7" class="section-content">분석 중...</p>
                 </div>
                 <div class="report-section">
                   <h3 class="section-title">8. 이렇게 도와주면 좋아요</h3>
-                  <p class="section-content">부모님이 일상에서 실천할 수 있는 코칭 팁입니다.</p>
+                  <p id="report-sec-8" class="section-content">분석 중...</p>
                 </div>
                 <div class="report-section">
                   <h3 class="section-title">9. 이 힘을 더 잘 자라게 하려면</h3>
-                  <p class="section-content">아이의 고유한 결이 더 잘 피어날 수 있는 환경과 방향을 제시합니다.</p>
+                  <p id="report-sec-9" class="section-content">분석 중...</p>
                 </div>
               </div>
             </div>

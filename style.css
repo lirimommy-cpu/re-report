@@ -257,13 +257,13 @@
   .section-title { font-size: 16px; color: var(--color-primary-dark); margin-bottom: 12px; font-weight: 700; }
   .section-content { font-size: 15px; color: var(--color-text-main); line-height: 1.6; white-space: pre-wrap; word-break: keep-all;}
   
-  .premium-area { position: relative; margin-top: 10px; }
-  .blurred-content { filter: blur(8px) opacity(0.6); user-select: none; pointer-events: none; display: flex; flex-direction: column; gap: 20px; }
-  .premium-overlay { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 90%; z-index: 5; text-align: center; }
-  .premium-teasing { background: rgba(255, 255, 255, 0.95); padding: 24px; border-radius: var(--radius-md); box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
-  .premium-teasing h4 { font-size: 18px; color: var(--color-text-main); margin-bottom: 12px; }
-  .teasing-desc { font-size: 14px; color: var(--color-text-sub); margin-bottom: 20px; line-height: 1.5; word-break: keep-all; }
-  .btn-premium { background: #333; color: white; border: none; padding: 12px 24px; border-radius: 30px; font-size: 15px; font-weight: 600; cursor: pointer; }
+  .premium-area { margin-top: 24px; }
+  .premium-toggle-bar { display: flex; align-items: center; gap: 8px; padding: 14px 20px; background: linear-gradient(135deg, #f0f7f4 0%, #e8f4ef 100%); border-radius: var(--radius-md); margin-bottom: 4px; border: 1px solid rgba(138,191,163,0.3); }
+  .premium-label-tag { background: var(--color-primary); color: white; font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 20px; letter-spacing: 0.3px; }
+  .premium-label-text { font-size: 14px; font-weight: 600; color: var(--color-text-main); flex: 1; }
+  .btn-premium-toggle { background: transparent; border: 1px solid var(--color-primary); color: var(--color-primary-dark); font-size: 12px; font-weight: 600; padding: 5px 12px; border-radius: 20px; cursor: pointer; font-family: inherit; transition: all 0.2s; }
+  .btn-premium-toggle:hover { background: var(--color-primary); color: white; }
+  .premium-content { display: flex; flex-direction: column; gap: 16px; padding-top: 4px; }
   
   /* ==========================================================================
      Screen 4: Guide
