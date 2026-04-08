@@ -581,174 +581,232 @@ function handleEdit(id) {
   }
 }
 
+
 // ============================================================
-// Re:리포트 Report Engine v3
-// 핵심: 기록 여러 개를 연결 → 반복되는 축 감지 → "이 아이다운" 문장 생성
-// 7가지 축: 관계민감 / 비교공정 / 인정욕구 / 자기기준 / 감정언어 / 몰입회피 / 확인질문
+// Re:리포트 Report Engine v4
+// 핵심: 이름 조사 자동 처리 + 7축 복합 감지 + 부모메모 반영 + 장면 기반 문장
 // ============================================================
-function detectAxes(snap) {
-  // 키워드 매핑: 각 축에 해당하는 텍스트 신호들
-  const signals = {
-    relation: ['친구', '같이', '혼자', '안 놀아', '왜 나는', '나만', '나랑', '우리', '선생님', '엄마가', '아빠가', '나 좋아해', '싫어', '나만 빼고'],
-    compare:  ['왜 쟤는', '나는 왜', '불공평', '더', '나만', '같이해야', '왜 나만', '쟤는 돼', '비교', '공평', '왜 달라', '나도 해줘'],
-    recognize:['잘했어', '칭찬', '보여줬어', '나 잘하지', '1등', '제일', '최고', '못했어', '실망', '속상해', '그래도 잘함', '봐줘'],
-    selfstd:  ['내 거야', '내가 할래', '이렇게 해야', '내가 정한', '왜 그래야', '규칙', '원칙', '내 방식', '싫어', '안 그러면'],
-    emolang:  ['속상', '화', '슬퍼', '무서워', '기분', '말했어', '표현', '울었어', '왜 그랬어', '어떻게', '감정'],
-    immerse:  ['계속', '또', '반복', '집중', '혼자', '몰두', '한 가지', '그것만', '끝까지', '멈추기 싫어', '안 끝났어'],
-    confirm:  ['맞아?', '그렇지?', '나 잘했지?', '그때', '왜', '어때', '나 좋아해?', '진짜야?', '정말?', '확인', '물어봤어']
+
+// ── 이름 조사 처리 (받침 유무 자동 감지) ──
+function nameP(name) {
+  if (!name) return { neun: '아이는', ga: '아이가', ui: '아이의', e: '아이에게', call: '아이', raw: '' };
+  const last = name[name.length - 1];
+  const code = last.charCodeAt(0);
+  const hasBatchim = code >= 44032 && (code - 44032) % 28 !== 0;
+  return {
+    neun: hasBatchim ? name + '이는' : name + '는',
+    ga:   hasBatchim ? name + '이가' : name + '가',
+    ui:   name + '의',
+    e:    hasBatchim ? name + '이에게' : name + '에게',
+    call: hasBatchim ? name + '이' : name,
+    raw:  name
   };
-
-  const axes = { relation: 0, compare: 0, recognize: 0, selfstd: 0, emolang: 0, immerse: 0, confirm: 0 };
-
-  snap.forEach(r => {
-    let w = 1.0;
-    if (r.favorite) w += 0.8;
-    if (r.parentNote && r.parentNote.trim()) w += 0.5;
-
-    const combined = (r.text + ' ' + (r.parentNote || '')).toLowerCase();
-
-    // 태그 기반 가중치
-    if (r.types.includes('감정')) { axes.emolang += w; axes.relation += w * 0.5; }
-    if (r.types.includes('질문')) { axes.confirm += w * 1.2; axes.relation += w * 0.5; }
-    if (r.types.includes('말'))   { axes.emolang += w * 0.5; axes.recognize += w * 0.5; }
-    if (r.types.includes('행동')) { axes.selfstd += w * 0.5; axes.immerse += w * 0.5; }
-
-    // 텍스트 키워드 스캔
-    for (const [axis, words] of Object.entries(signals)) {
-      words.forEach(word => {
-        if (combined.includes(word)) axes[axis] += w * 0.8;
-      });
-    }
-  });
-
-  // 상위 2개 축 반환 (내림차순)
-  return Object.entries(axes)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 2)
-    .map(e => e[0]);
 }
 
-// 축별 리포트 텍스트 라이브러리
-function getAxisText(axis, name, snap, isSecond) {
-  // 기록에서 실제 예시 문장 한 개 추출 (있을 경우)
-  const ex = snap.find(r => {
-    const t = r.text || '';
-    if (axis === 'relation') return t.includes('친구') || t.includes('같이') || t.includes('혼자');
-    if (axis === 'compare')  return t.includes('왜') || t.includes('나만') || t.includes('불공평') || t.includes('더');
-    if (axis === 'recognize')return t.includes('잘') || t.includes('칭찬') || t.includes('보여') || t.includes('속상');
-    if (axis === 'selfstd')  return t.includes('내가') || t.includes('내 거') || t.includes('싫어') || t.includes('이렇게');
-    if (axis === 'emolang')  return t.includes('속상') || t.includes('화') || t.includes('슬퍼') || t.includes('기분');
-    if (axis === 'immerse')  return t.includes('계속') || t.includes('또') || t.includes('혼자') || t.includes('멈추');
-    if (axis === 'confirm')  return t.includes('맞아') || t.includes('그렇지') || t.includes('나 좋아') || t.includes('왜');
-    return false;
-  });
-  const exSnippet = ex ? `"${ex.text.slice(0, 30)}${ex.text.length > 30 ? '…' : ''}"` : null;
+// ── 7축 감지 ──
+function detectAxes(snap) {
+  const signals = {
+    relation: ['친구', '같이', '혼자', '안 놀아', '왜 나는', '나만', '나랑', '나만 빼고', '나 좋아해', '누가 더', '나한테만', '싫다고'],
+    compare:  ['왜 쟤는', '나는 왜', '불공평', '나만', '쟤는 돼', '비교', '공평', '왜 달라', '나도 해줘', '왜 나만 안', '더 주잖아'],
+    recognize:['잘했어', '칭찬', '보여줬어', '나 잘하지', '제일', '최고', '봐봐', '봐줘', '내가 했어', '어때', '자랑'],
+    selfstd:  ['내 거야', '내가 할래', '이렇게 해야', '내가 정한', '왜 그래야', '내 방식', '내가 원하는', '하기 싫어', '내가 결정', '안 바꿔'],
+    emolang:  ['속상', '화났', '슬퍼', '무서워', '기분', '왜 그랬어', '울었어', '짜증', '마음이'],
+    immerse:  ['계속', '또 하고 싶어', '집중', '혼자서', '끝까지', '멈추기 싫어', '안 끝났어', '더 하고 싶어', '몇 번씩'],
+    confirm:  ['맞아?', '그렇지?', '나 잘했지?', '나 좋아해?', '진짜야?', '정말?', '물어봤어', '엄마도 그렇게 생각해?', '확인하려고']
+  };
 
-  const texts = {
+  const scores = { relation: 0, compare: 0, recognize: 0, selfstd: 0, emolang: 0, immerse: 0, confirm: 0 };
+
+  snap.forEach(function(r) {
+    var w = 1.0;
+    if (r.favorite) w += 1.0;
+    var note = (r.parentNote || '').trim();
+    if (note) w += 0.8;
+    var combined = ((r.text || '') + ' ' + note).toLowerCase();
+
+    // 태그 기반 (교차 반영)
+    if (r.types.includes('감정')) { scores.emolang += w * 1.2; scores.relation += w * 0.4; }
+    if (r.types.includes('질문')) { scores.confirm += w * 1.3; scores.relation += w * 0.4; scores.recognize += w * 0.3; }
+    if (r.types.includes('말'))   { scores.recognize += w * 0.6; scores.compare += w * 0.3; }
+    if (r.types.includes('행동')) { scores.selfstd += w * 0.6; scores.immerse += w * 0.6; }
+
+    // 텍스트 키워드 스캔
+    Object.entries(signals).forEach(function(entry) {
+      var axis = entry[0]; var words = entry[1];
+      words.forEach(function(word) {
+        if (combined.includes(word)) scores[axis] += w * 0.9;
+      });
+    });
+
+    // 부모 메모 키워드 추가 가중치
+    if (note) {
+      var noteL = note.toLowerCase();
+      if (noteL.includes('눈치') || noteL.includes('민감') || noteL.includes('예민')) scores.relation += w * 1.2;
+      if (noteL.includes('비교') || noteL.includes('억울') || noteL.includes('공평')) scores.compare += w * 1.2;
+      if (noteL.includes('잘 보이') || noteL.includes('칭찬') || noteL.includes('인정')) scores.recognize += w * 1.2;
+      if (noteL.includes('자기') || noteL.includes('고집') || noteL.includes('방식')) scores.selfstd += w * 1.2;
+      if (noteL.includes('감정') || noteL.includes('속상') || noteL.includes('마음')) scores.emolang += w * 1.2;
+      if (noteL.includes('집중') || noteL.includes('몰두') || noteL.includes('혼자')) scores.immerse += w * 1.2;
+      if (noteL.includes('확인') || noteL.includes('물어') || noteL.includes('의지')) scores.confirm += w * 1.2;
+    }
+  });
+
+  return Object.entries(scores)
+    .sort(function(a, b) { return b[1] - a[1]; })
+    .slice(0, 2)
+    .map(function(e) { return e[0]; });
+}
+
+// ── 기록에서 구체적 예시 추출 ──
+function pickExample(snap, keywords) {
+  var r = snap.find(function(rec) {
+    return keywords.some(function(kw) { return (rec.text || '').includes(kw); });
+  });
+  if (!r) return null;
+  var t = r.text;
+  return '\u201c' + t.slice(0, 36) + (t.length > 36 ? '\u2026' : '') + '\u201d';
+}
+
+// ── 기록 패턴 요약 (3개 기록 연결) ──
+function buildPatternSummary(snap, axis) {
+  var axisKeywords = {
+    relation: ['친구', '같이', '혼자', '나만', '나랑'],
+    compare:  ['왜', '나만', '불공평', '비교', '공평', '나도'],
+    recognize:['잘', '칭찬', '보여', '봐줘', '제일', '자랑'],
+    selfstd:  ['내가', '내 거', '싫어', '내 방식', '내가 정'],
+    emolang:  ['속상', '화', '슬퍼', '기분', '울었'],
+    immerse:  ['계속', '또', '끝까지', '혼자서', '집중'],
+    confirm:  ['맞아', '그렇지', '나 좋아', '진짜야', '정말']
+  };
+  var kws = axisKeywords[axis] || [];
+  var matched = snap.filter(function(r) {
+    return kws.some(function(kw) { return (r.text || '').includes(kw); });
+  }).slice(0, 3);
+  if (matched.length < 2) return null;
+  return matched.map(function(r) {
+    return '\u201c' + r.text.slice(0, 24) + (r.text.length > 24 ? '\u2026' : '') + '\u201d';
+  }).join(', ');
+}
+
+// ── 축별 리포트 텍스트 라이브러리 v4 ──
+function getAxisText(axis, n, snap) {
+  var kwMap = {
+    relation: ['친구', '같이', '혼자', '나만'],
+    compare:  ['왜', '나만', '불공평', '비교'],
+    recognize:['칭찬', '봐줘', '제일', '자랑', '잘했어'],
+    selfstd:  ['내가 할래', '내 거', '내가 정', '싫어'],
+    emolang:  ['속상', '화났', '슬퍼', '기분'],
+    immerse:  ['계속', '끝까지', '혼자서', '더 하고'],
+    confirm:  ['맞아?', '그렇지?', '나 좋아해?', '진짜야?']
+  };
+  var ex = pickExample(snap, kwMap[axis] || []);
+  var pattern = buildPatternSummary(snap, axis);
+
+  var T = {
     relation: {
-      highlight: `${name}이는 사람 사이의 반응을 민감하게 읽으면서 자신의 위치를 느끼려는 결이 있어요.`,
-      sec1: `최근 기록에서 반복해서 보이는 장면은, ${name}이가 누군가와 함께 있을 때 자신이 어떻게 받아들여지는지를 꽤 민감하게 감지한다는 점이에요.${exSnippet ? ` 예를 들어 ${exSnippet}처럼,` : ''} 관계 속에서 자신이 포함되어 있는지 아닌지를 바로 알아채는 장면들이 여러 번 등장해요.`,
-      sec2: `이 민감함은 문제가 아니라, 이 아이가 사람 사이의 흐름과 감정의 온도를 꽤 섬세하게 읽는 결이 있다는 신호예요. 관계 속에서 자신의 위치를 확인하려는 욕구가 강하게 올라오는 시기이기도 하고, ${name}이는 그 안에서 특히 "나는 여기서 받아들여지고 있는가"를 자주 묻는 편으로 읽혀요.`,
-      sec3: `${name}이에게 "너랑 함께라서 좋아"라는 신호를 말이 아닌 행동으로, 조금 더 자주 보내주시면 어떨까요? 이 아이는 직접 눈으로 확인할 수 있는 관계의 신호에 특히 안정감을 느끼는 편이에요.`,
-      sec4: `최근 기록에서 관계 상황이 등장하는 빈도를 이전과 비교해보면, ${name}이가 관계에서 받는 감정의 영향이 이전보다 더 선명하게 드러나고 있어요. 이 흐름은 또래와의 관계가 점점 더 중요해지는 발달 단계와 맞물려 있을 수 있어요.`,
-      sec5: `관계에서 배제되거나 혼자가 되는 상황, 또는 누군가가 자신보다 다른 아이에게 더 관심을 기울이는 장면에서 감정이 크게 올라오는 패턴이 보여요.`,
-      sec6: `사람의 감정을 빠르게 읽고, 상황의 분위기를 잘 파악하는 힘이 있어요. 이 감각은 훗날 관계를 잘 맺는 힘, 타인의 마음을 헤아리는 공감 능력으로 이어질 수 있는 소중한 결이에요.`,
-      sec7: `혼자 남겨지거나, "나만 빠졌다"는 느낌이 드는 순간에 감정이 가장 빠르게 올라오는 편이에요. 반대로 "너랑 같이 하고 싶어"처럼 포함의 신호를 받을 때는 표정이 달라지는 장면도 보여요.`,
-      sec8: `관계에서 감정이 크게 올라올 때, "그 친구가 너를 싫어하는 게 아니라 그 순간에는 다른 걸 하고 싶었던 것 같아"처럼 상황을 다르게 읽는 말을 건네주시면 도움이 돼요.`,
-      sec9: `다양한 관계에서 소속감을 경험할 수 있는 기회를 조금씩 늘려주세요. 소규모 환경에서 깊이 연결되는 경험이 이 아이에게 더 잘 맞는 편이에요.`
+      highlight: n.neun + ' 관계 안에서 자신이 어떻게 받아들여지는지를 예민하게 감지하는 결이 있어요.',
+      sec1: '최근 기록들을 연결해보면, ' + (pattern ? pattern + '처럼 ' : '') + '누군가와 함께 있는 상황에서 자신이 포함되어 있는지 아닌지를 빠르게 알아채는 장면이 반복돼요. "나만 빠진 건 아닐까", "이 사람은 나를 좋아하는 걸까"라는 감각이 올라오는 순간에 반응이 커지는 패턴이에요.',
+      sec2: '이 민감함은 결함이 아니라, 사람 사이의 감정 온도와 분위기를 꽤 섬세하게 읽는 결이에요. 관계 안에서 자신의 위치가 불확실하게 느껴질 때 감정이 더 크게 올라오고, 반대로 "나랑 있고 싶어"라는 신호를 받으면 표정이 확 달라지는 장면이 있어요.' + (ex ? ' ' + ex : ''),
+      sec3: '관계에서 감정이 크게 올라올 때, 해결보다 "맞아, 그 순간 섭섭했겠다"처럼 그 감각 자체를 인정해주시면 ' + n.e + ' 더 잘 닿아요.',
+      sec4: '최근 기록에서 관계 맥락이 등장하는 기록이 특히 많아요. 또래와의 관계에서 받는 감정 신호가 이 아이에게 미치는 영향이 이전보다 더 두드러지는 흐름이에요.',
+      sec5: '다른 아이가 더 많은 관심을 받는 장면, 혼자 남겨진 느낌이 드는 순간, 또는 "나는 빠졌어"라는 감각이 올라올 때 감정이 가장 빠르게 반응해요.',
+      sec6: '사람의 감정과 분위기를 빠르게 읽는 감각은, 누군가 힘들 때 가장 먼저 알아챌 수 있는 힘이 될 수 있어요. 관계의 결을 세밀하게 읽는 아이예요.',
+      sec7: '"나만 빠졌다"는 느낌이 들 때, 또는 자신에게만 관심이 덜 주어진다고 느끼는 상황에서 감정이 특히 크게 올라와요.',
+      sec8: '"그 친구가 싫어하는 게 아니라 그 순간엔 다른 걸 하고 싶었던 것 같아"처럼, 상황을 다르게 읽는 시각을 조용히 건네주세요.',
+      sec9: '소그룹에서 한 명과 충분히 연결되는 경험이 ' + n.e + ' 더 잘 맞아요. 넓은 관계보다 깊은 연결이 안정감을 줘요.'
     },
     compare: {
-      highlight: `${name}이는 비교가 일어나는 상황에서 공정함에 대한 감각이 특히 예민하게 깨어나요.`,
-      sec1: `최근 기록들 사이에서 반복해서 등장하는 상황은, 자신과 다른 사람 사이의 차이가 느껴지는 장면들이에요.${exSnippet ? ` ${exSnippet}처럼` : ''} "왜 저 아이는 되고 나는 안 돼?"처럼 평등하지 않다는 느낌이 올라올 때 감정이 크게 움직이는 패턴이 보여요.`,
-      sec2: `이 예민함은 단순한 억울함이 아니에요. ${name}이는 자신만의 공정함의 기준이 꽤 또렷하게 자리잡고 있고, 그 기준에 맞지 않는 상황이 오면 자동으로 감정이 반응하는 편이에요. 겉으로는 투정처럼 보일 수 있지만, 그 안에는 원칙과 인정 욕구가 함께 걸려 있어요.`,
-      sec3: `"맞아, 네 입장에서는 억울할 수 있겠다"처럼 결과보다 마음을 먼저 인정해주세요. 옳고 그름을 판단하기 전에 이 아이의 느낌이 먼저 받아들여졌다는 신호가 중요해요.`,
-      sec4: `비교 상황에서 감정이 크게 올라오는 빈도가 최근 기록에서 더 자주 등장하고 있어요. 이것이 일시적인 흐름인지, 아니면 지속적인 패턴인지 조금 더 지켜볼 필요가 있어요.`,
-      sec5: `형제자매, 친구, 또래와 비교되는 상황, 또는 규칙이 나에게만 다르게 적용되는 것처럼 느껴지는 순간에 감정이 가장 빠르게 올라와요.`,
-      sec6: `공정함에 대한 감각이 살아있고, 원칙에 대한 자기 기준이 있다는 것은 훗날 정의감, 리더십 감각으로 연결될 수 있는 힘이에요.`,
-      sec7: `"쟤는 되는데 나는 왜 안 돼"라는 말이 나오는 상황이나, 내 것과 남의 것이 다르다고 느껴지는 순간에 감정이 가장 크게 움직여요.`,
-      sec8: `"이번엔 이렇게 됐는데, 다음엔 달라질 수 있어"처럼 지금 이 순간이 전부가 아니라는 것을 조용하게 보여주시면 도움이 돼요.`,
-      sec9: `공정한 환경과 규칙이 명확한 공간에서 이 아이는 더 안정적으로 자기 힘을 발휘해요. 규칙을 미리 설명해주고, 납득할 수 있는 이유를 함께 말해주세요.`
+      highlight: n.neun + ' 비교가 일어나는 순간, 공정함에 대한 감각이 유독 빠르게 깨어나는 편이에요.',
+      sec1: '기록을 연결해보면, ' + (pattern ? pattern + '처럼 ' : '') + '"왜 저 아이는 되는데 나는 안 돼?", "나만 이래?"처럼 자신과 다른 사람의 차이가 느껴지는 상황에서 감정이 크게 올라오는 장면이 반복적으로 등장해요.',
+      sec2: '이 반응은 단순한 억울함이 아니라, 자기 나름의 공정성 기준이 이미 꽤 또렷하게 자리잡고 있다는 신호예요.' + (ex ? ' ' + ex : '') + ' 겉으로는 투정처럼 보일 수 있지만, 그 안에는 원칙과 인정 욕구가 함께 걸려 있어요.',
+      sec3: '"맞아, 그 입장에서는 억울할 수 있어"처럼 결과보다 감각을 먼저 인정해주세요. 판단보다 인정이 먼저예요.',
+      sec4: '비교 상황에서 감정이 올라오는 패턴이 기록에서 일관되게 등장해요. 특정 관계에서만 나타나는지, 전반적으로 보이는지 흐름을 관찰해보시면 좋아요.',
+      sec5: '형제, 친구, 또래와 비교되는 장면, 또는 "왜 나만 안 돼?"라는 말이 나오는 순간에 감정이 가장 빠르게 올라와요.',
+      sec6: '공정함에 대한 감각이 살아있다는 것은, 훗날 정의감과 원칙에 대한 감각으로 이어질 수 있는 결이에요.',
+      sec7: '"쟤는 되는데 나는 왜 안 돼"라는 말이 나오거나, 내 것과 남의 것이 달라 보이는 순간에 특히 크게 반응해요.',
+      sec8: '"이번엔 이렇게 됐어. 다음엔 달라질 수 있어"처럼 지금이 전부가 아님을 조용하게 보여주세요.',
+      sec9: '규칙이 명확하고 이유를 설명해주는 환경에서 이 아이는 더 안정적으로 반응해요.'
     },
     recognize: {
-      highlight: `${name}이는 잘 보이고 싶은 마음과 자기 기준이 함께 자라고 있어요.`,
-      sec1: `기록들을 연결해보면, ${name}이가 무언가를 해냈을 때 또는 잘 안 됐을 때, 그 결과에 대한 주변의 반응을 꽤 신경 쓰는 모습이 자주 보여요.${exSnippet ? ` ${exSnippet}처럼` : ''} 칭찬을 받으면 눈에 띄게 기분이 달라지고, 기대만큼 인정받지 못한다고 느낄 때 감정이 올라오는 장면들이 반복돼요.`,
-      sec2: `이 모습은 외부 평가에만 의존하는 것이 아니라, 자기 안에서도 기준이 생겨나고 있다는 신호예요. "잘하고 싶다"는 마음과 "인정받고 싶다"는 마음이 함께 올라오는 시기예요. ${name}이는 그 두 마음 사이에서 자기 자신을 가늠해나가고 있어 보여요.`,
-      sec3: `결과보다 과정을 먼저 알아봐주세요. "해봤다는 것 자체가 대단해"처럼, 결과가 어떻든 이 아이가 시도한 것 자체에 반응해주시면 이 아이의 내면 기준이 더 단단하게 자랄 수 있어요.`,
-      sec4: `최근 칭찬이나 인정에 반응하는 강도가 이전보다 달라졌나요? 기록을 보면 이 부분이 점점 더 선명한 축으로 자리잡고 있어요.`,
-      sec5: `발표, 경쟁, 평가가 들어가는 상황이나, 자신이 한 것을 누군가가 봐주는 상황에서 감정이 더 크게 움직이는 편이에요.`,
-      sec6: `잘하고 싶다는 동기, 인정을 통해 다음 시도로 이어지는 힘은 훗날 성취동기, 자기 향상의 힘으로 연결될 수 있는 결이에요.`,
-      sec7: `기대만큼 인정받지 못한다고 느낄 때, 또는 다른 아이가 더 많이 칭찬받는 장면에서 감정이 빠르게 올라오는 편이에요.`,
-      sec8: `"넌 어떤 것 같아?"라고 먼저 아이 스스로 평가하게 해주세요. 외부의 평가보다 자기 안의 기준이 먼저 자랄 수 있는 환경을 만들어주시는 것이 도움이 돼요.`,
-      sec9: `성과보다 시도와 과정에 반응해주세요. "해봤다"는 것만으로도 충분하다는 경험이 쌓이면, 이 아이는 더 자유롭게 시도하는 힘을 가질 수 있어요.`
+      highlight: n.neun + ' 잘 보이고 싶은 마음과 자기 기준이 함께 자라는 시기에 있어요.',
+      sec1: '기록을 연결해보면, ' + (pattern ? pattern + '처럼 ' : '') + '무언가를 해냈을 때 주변의 반응을 꽤 신경 쓰는 장면이 반복돼요. 칭찬이 오면 눈에 띄게 기분이 달라지고, 기대한 반응이 오지 않을 때 감정이 올라오는 흐름이 있어요.',
+      sec2: '"잘하고 싶다"는 마음과 "알아줬으면 좋겠다"는 마음이 함께 올라오는 시기예요.' + (ex ? ' ' + ex : '') + ' 그 두 마음 사이에서 자기 자신을 가늠해나가는 중으로 읽혀요.',
+      sec3: '결과보다 시도에 반응해주세요. "해봤다는 것 자체가 좋아"처럼, 성과보다 과정에 닿는 말이 이 아이에게 더 잘 작동해요.',
+      sec4: '인정 반응에 대한 민감도가 기록에서 꾸준히 등장하고 있어요. 이 패턴이 어떤 상황에서 더 두드러지는지 살펴보시면 좋아요.',
+      sec5: '발표, 경쟁, 또는 자신이 한 것을 누군가가 봐주는 상황에서 감정이 더 크게 움직이는 편이에요.',
+      sec6: '잘하고 싶다는 동기가 강하다는 것은, 다음 시도로 이어지는 힘이 있다는 뜻이에요.',
+      sec7: '기대만큼 인정받지 못하거나, 다른 아이가 더 많은 칭찬을 받는 장면에서 감정이 빠르게 올라오는 편이에요.',
+      sec8: '"넌 어떤 것 같아?"라고 먼저 물어봐주세요. 외부 평가보다 내 안의 기준이 먼저 자랄 수 있는 경험이 필요해요.',
+      sec9: '"해봤다"는 것 자체에 반응해주는 경험이 쌓이면, 이 아이는 더 자유롭게 시도할 수 있어요.'
     },
     selfstd: {
-      highlight: `${name}이는 자기만의 기준과 방식을 중요하게 여기는 결이 또렷하게 보여요.`,
-      sec1: `기록에서 반복해서 등장하는 장면은, ${name}이가 "내가 하고 싶은 방식대로 하고 싶다"는 의지가 강하게 올라오는 순간들이에요.${exSnippet ? ` ${exSnippet}처럼` : ''} 내가 정한 것이 바뀌거나, 예상치 못하게 방식이 변경될 때 감정이 크게 올라오는 패턴이 보여요.`,
-      sec2: `이 고집처럼 보이는 모습 안에는, 자기 자신에 대한 꽤 선명한 기준이 자리잡고 있어요. "내가 이것을 어떻게 할지는 내가 정하고 싶다"는 자율성의 욕구이기도 해요. 이 결은 훗날 흔들리지 않는 자기 기준이 되어줄 수 있어요.`,
-      sec3: `가능한 범위에서 선택권을 주세요. 100% 자유가 아니더라도, "이 두 가지 중에 어떻게 할래?"처럼 선택할 수 있는 여지가 있을 때 이 아이는 훨씬 부드럽게 움직여요.`,
-      sec4: `자기 방식에 대한 고집이 최근 기록에서 더 자주 등장하고 있어요. 환경이 바뀌었거나, 뭔가 통제할 수 없다는 느낌이 더 많이 올라오는 시기일 수 있어요.`,
-      sec5: `누군가가 자신의 방식에 개입하거나, 갑자기 계획이 바뀌는 상황에서 감정이 가장 빠르게 반응해요.`,
-      sec6: `자기 방식과 기준이 있다는 것은, 외부에 쉽게 흔들리지 않고 자신의 길을 걸어갈 수 있는 힘이에요. 독립적인 사고와 자기 주도의 씨앗이 여기 있어요.`,
-      sec7: `"왜 내 말대로 안 해줘"처럼 통제감을 잃었다고 느끼는 순간에 감정이 가장 크게 올라와요.`,
-      sec8: `이유를 설명해주세요. "이렇게 해야 해"보다 "이래서 이렇게 하는 게 더 좋을 것 같아"처럼 납득할 수 있는 이유가 함께 오면 이 아이는 더 잘 움직여요.`,
-      sec9: `루틴과 예측 가능한 환경이 이 아이에게 안정감을 줘요. 갑작스러운 변경보다 미리 알려주는 것만으로도 많이 달라질 수 있어요.`
+      highlight: n.neun + ' 자기만의 방식과 기준을 지키려는 결이 꽤 또렷하게 보여요.',
+      sec1: '기록을 연결해보면, ' + (pattern ? pattern + '처럼 ' : '') + '"내가 하고 싶은 방식대로 해야 한다"는 의지가 올라오는 장면이 반복돼요. 내가 정한 것이 바뀌거나, 예상치 못한 방향으로 흐를 때 감정이 크게 올라오는 패턴이에요.',
+      sec2: '이 고집처럼 보이는 모습 안에는, 꽤 선명한 자기 기준이 자리잡고 있어요.' + (ex ? ' ' + ex : '') + ' "이건 내가 결정하고 싶다"는 자율성의 욕구이기도 해요.',
+      sec3: '"이 두 가지 중에 어떻게 할래?"처럼 선택지를 주세요. 선택권이 있으면 훨씬 부드럽게 움직여요.',
+      sec4: '자기 방식에 대한 의지가 기록에서 꾸준히 등장하고 있어요. 어떤 상황에서 더 강하게 올라오는지 패턴을 보면 도움이 될 수 있어요.',
+      sec5: '누군가 자신의 방식에 개입하거나, 갑자기 계획이 바뀌는 순간에 감정이 가장 빠르게 반응해요.',
+      sec6: '외부에 쉽게 흔들리지 않는 자기 기준은, 훗날 독립적인 사고의 힘이 돼요.',
+      sec7: '"왜 내 말대로 안 해줘"처럼 통제감을 잃었다고 느끼는 순간에 감정이 가장 크게 올라와요.',
+      sec8: '"이렇게 해야 해"보다 "이래서 이게 더 나을 것 같아"처럼 납득할 수 있는 이유를 함께 주세요.',
+      sec9: '예측 가능한 루틴이 있을 때 이 아이는 더 안정적으로 자기 힘을 발휘해요.'
     },
     emolang: {
-      highlight: `${name}이는 자신이 느끼는 것을 말로 붙잡으려는 힘이 자라고 있어요.`,
-      sec1: `기록에서 눈에 띄는 점은, ${name}이가 감정이 크게 올라오는 순간에 그것을 그냥 넘기지 않고 어떤 식으로든 표현하거나 확인하려는 장면들이 반복된다는 거예요.${exSnippet ? ` ${exSnippet}처럼` : ''} 감정이 올라오는 순간을 자신도 인식하고, 그것을 밖으로 꺼내보려는 시도가 보여요.`,
-      sec2: `이 모습은 감정에 압도당하는 것이 아니라, 감정을 느끼면서 그것을 어떻게 표현해야 할지 찾아가는 과정으로 읽혀요. ${name}이는 자신의 내면을 꽤 선명하게 인식하는 편이고, 그 감각이 자라고 있어 보여요.`,
-      sec3: `감정에 이름을 붙여주세요. "속상했나 봐"처럼 먼저 이름을 달아주면, 이 아이가 자신의 감정을 더 선명하게 알아채어 갈 수 있어요.`,
-      sec4: `감정 표현의 방식이 최근 기록에서 어떻게 달라지고 있는지 살펴보면, 이전보다 말로 표현하려는 시도가 조금씩 늘고 있는 흐름이 보여요.`,
-      sec5: `억울하거나 기대가 어긋난 상황, 또는 마음의 준비가 안 된 상태에서 갑자기 전환이 일어나는 순간에 감정이 더 크게 올라오는 패턴이 있어요.`,
-      sec6: `자신의 감정을 인식하고 표현하려는 힘은, 공감 능력과 자기 이해의 씨앗이에요. 이 감각이 잘 자라면, 이 아이는 자신뿐 아니라 타인의 감정도 잘 읽는 사람이 될 수 있어요.`,
-      sec7: `뜻대로 안 되거나, 원하는 것을 말했는데 받아들여지지 않는 상황에서 감정이 가장 빠르게 올라와요.`,
-      sec8: `"지금 어떤 기분이야?"보다 "이게 속상했겠다"처럼, 질문보다 공감의 말이 더 잘 닿아요.`,
-      sec9: `감정을 말로 표현한 것에 반응해주세요. "말해줘서 고마워"처럼 표현 자체에 가치를 두면, 이 아이는 감정을 숨기지 않고 꺼내는 힘이 더 잘 자라요.`
+      highlight: n.neun + ' 감정이 올라오는 순간, 그것을 말로 붙잡으려는 시도가 반복해서 보여요.',
+      sec1: '기록을 연결해보면, ' + (pattern ? pattern + '처럼 ' : '') + '감정이 크게 올라오는 순간에 그냥 넘기지 않고 표현하거나 확인하려는 장면이 여러 번 등장해요. 속상함, 억울함이 올라오는 순간을 스스로도 알아채고, 그것을 밖으로 꺼내보려는 흐름이 있어요.',
+      sec2: '이 모습은 감정에 압도당하는 것이 아니에요.' + (ex ? ' ' + ex : '') + ' 느끼는 것을 어떻게 표현해야 할지 찾아가는 과정으로 읽혀요. 자기 내면을 꽤 또렷하게 인식하는 편이에요.',
+      sec3: '감정에 먼저 이름을 붙여주세요. "속상했구나"처럼 이름을 달아주면, 이 아이가 자신의 감각을 더 선명하게 알아차릴 수 있어요.',
+      sec4: '감정을 말로 꺼내려는 시도가 최근 기록에서 꾸준히 나타나고 있어요. 어떤 상황에서 더 빠르게 올라오는지 패턴이 보여요.',
+      sec5: '억울하거나 기대가 어긋난 순간, 또는 준비가 안 된 상태에서 갑자기 전환이 일어날 때 감정이 더 크게 올라오는 편이에요.',
+      sec6: '자신의 감정 변화를 알아채는 감각은, 타인의 마음을 읽는 힘으로도 이어질 수 있어요.',
+      sec7: '원하는 것을 말했는데 받아들여지지 않는 상황, 또는 감정이 올라왔는데 아무도 알아채지 못하는 순간에 특히 크게 반응해요.',
+      sec8: '"어떤 기분이야?"보다 "그게 속상했겠다"처럼 질문보다 공감이 더 잘 닿아요.',
+      sec9: '감정을 꺼냈을 때 반응해주세요. "말해줘서 고마워"처럼 표현 자체에 가치를 두면, 이 아이는 감정을 숨기지 않고 꺼내는 힘이 더 잘 자라요.'
     },
     immerse: {
-      highlight: `${name}이는 자신이 흥미를 느끼는 것에 깊이 몰두하는 결이 있어요.`,
-      sec1: `기록에서 반복해서 등장하는 모습은, 한번 빠져든 것에 대해 주변의 신호를 무시하고 계속하려는 장면들이에요.${exSnippet ? ` ${exSnippet}처럼` : ''} 흥미가 생기면 끝까지 하고 싶고, 중간에 끊기는 것을 받아들이기 어려워하는 패턴이 보여요.`,
-      sec2: `이 몰두하는 힘은 산만한 것이 아니에요. ${name}이는 흥미를 느끼는 대상에 자신의 에너지를 집중하는 방식으로 세상을 탐구하는 아이예요. 이 결이 자라면, 깊이 파고드는 전문성의 힘이 될 수 있어요.`,
-      sec3: `끝내기 전에 미리 알려주세요. "5분 있어"처럼 예고를 주면, 이 아이는 전환을 훨씬 부드럽게 받아들일 수 있어요.`,
-      sec4: `특정 주제나 활동에 대한 몰입의 깊이가 최근 기록에서 더 자주 등장하고 있어요. 이 흐름이 어느 방향으로 이어지는지 눈여겨보시면 좋아요.`,
-      sec5: `좋아하는 것을 하고 있을 때 끊기거나, 원하는 것을 충분히 하지 못했다고 느낄 때 감정이 크게 올라오는 패턴이 있어요.`,
-      sec6: `한 가지에 깊이 집중하는 힘, 끝까지 해보려는 지속성은 훗날 깊이 있는 성취를 만들어낼 수 있는 소중한 결이에요.`,
-      sec7: `"이제 그만해야 해"처럼 아직 하고 싶은데 끊기는 순간에 감정이 가장 크게 올라와요.`,
-      sec8: `몰두하는 것 자체를 인정해주세요. "그거 진짜 좋아하는구나"처럼 관심을 받았다는 느낌이 먼저 오면, 전환도 더 쉬워져요.`,
-      sec9: `충분히 몰두할 수 있는 시간과 공간을 조금씩 허용해주세요. 방해받지 않는 시간이 이 아이에게는 회복의 공간이기도 해요.`
+      highlight: n.neun + ' 흥미를 느끼는 것에 깊이 몰두하고, 끊기면 크게 반응하는 결이 있어요.',
+      sec1: '기록을 연결해보면, ' + (pattern ? pattern + '처럼 ' : '') + '한번 빠져든 것을 끝까지 하고 싶고, 중간에 끊기는 것을 받아들이기 어려워하는 장면이 반복돼요. 흥미가 생기면 끊임없이 돌아오려는 흐름이 있어요.',
+      sec2: '이 몰두하는 힘은 산만함이 아니에요.' + (ex ? ' ' + ex : '') + ' 흥미를 느끼는 대상에 에너지를 집중하는 방식으로 세상을 탐구하는 스타일이에요.',
+      sec3: '끝내기 전에 미리 알려주세요. "5분 뒤"처럼 예고가 있으면 전환이 훨씬 부드러워요.',
+      sec4: '특정 활동이나 주제에 대한 몰입이 기록에서 꾸준히 등장하고 있어요.',
+      sec5: '좋아하는 것을 하고 있을 때 끊기거나, 충분히 하지 못했다고 느낄 때 감정이 크게 올라와요.',
+      sec6: '한 가지에 깊이 집중하는 힘, 끝까지 해보려는 지속성은 훗날 깊이 있는 성취의 씨앗이에요.',
+      sec7: '"이제 그만"처럼 아직 하고 싶은데 끊기는 순간에 감정이 가장 크게 올라와요.',
+      sec8: '"그거 진짜 좋아하는구나"처럼 관심받았다는 느낌이 오면, 전환도 더 쉬워요.',
+      sec9: '방해받지 않고 몰두할 수 있는 시간이 이 아이에게는 회복의 공간이기도 해요.'
     },
     confirm: {
-      highlight: `${name}이는 질문을 통해 관계와 세상 사이에서 자신의 자리를 확인하려는 결이 있어요.`,
-      sec1: `기록에서 가장 자주 등장하는 패턴 중 하나는, ${name}이가 일상의 여러 상황에서 "맞아?", "그렇지?", "나 잘했지?"처럼 확인을 구하는 질문들이에요.${exSnippet ? ` ${exSnippet}처럼` : ''} 단순한 정보 확인이 아니라, 자신의 판단과 감각이 받아들여지고 있는지 확인하려는 욕구처럼 읽혀요.`,
-      sec2: `이 잦은 확인 질문들은 불안함이 아니라, 자기 자신에 대한 감각이 자라고 있는 신호예요. "내가 옳은 방향으로 가고 있는가"를 자꾸 물으면서 자신의 기준을 만들어가는 과정으로 읽혀요. ${name}이는 확인을 통해 세상 속에서 자신을 가늠하는 중이에요.`,
-      sec3: `질문에 바로 답을 주기보다, "너는 어떻게 생각해?"라고 되물어주세요. 이 아이의 추측과 판단이 먼저 나오도록 기다려주시면, 스스로 확인하는 힘이 더 빠르게 자라요.`,
-      sec4: `확인 질문의 성격이 최근 기록에서 어떻게 달라지고 있는지를 보면, 정보 확인에서 관계 확인으로 조금씩 이동하고 있는 흐름이 보여요.`,
-      sec5: `새로운 상황이나 변화가 생긴 직후, 또는 자신의 행동에 대한 피드백을 받지 못했을 때 확인 질문이 더 자주 올라오는 패턴이 있어요.`,
-      sec6: `"왜"를 자꾸 묻고, 확인을 반복하는 것은 지적 호기심과 관계 감수성이 함께 자라고 있다는 신호예요. 이 결이 자라면, 날카로운 질문과 깊은 통찰의 힘이 될 수 있어요.`,
-      sec7: `확신이 없는 상황이나, 자신이 한 것이 맞는지 검증받지 못한 느낌이 드는 순간에 감정이 더 크게 움직여요.`,
-      sec8: `"맞아, 그렇게 생각할 수 있어"처럼 판단 자체를 인정해주는 반응이 이 아이에게 안정감을 줘요. 정답보다 "네 생각도 말이 돼"가 더 잘 닿아요.`,
-      sec9: `일상에서 아이의 판단을 존중하는 작은 경험들을 쌓아주세요. "네가 골랐으니까 해봐"처럼 맡겨주는 경험이 자기 확신으로 이어져요.`
+      highlight: n.neun + ' 질문과 확인을 통해 관계 안에서 자신의 위치를 자주 가늠하려는 결이 있어요.',
+      sec1: '기록을 연결해보면, ' + (pattern ? pattern + '처럼 ' : '') + '"맞지?", "나 잘했지?", "나 좋아해?"처럼 자신의 감각이나 판단이 받아들여지는지 확인하려는 질문이 반복해서 등장해요. 단순한 정보 확인이 아니라, 관계 안에서 자신의 위치를 가늠하려는 욕구로 읽혀요.',
+      sec2: '이 반복적인 확인은 불안의 신호가 아니에요.' + (ex ? ' ' + ex : '') + ' "내가 옳은 방향으로 있는가"를 자꾸 물으면서 자기 기준을 만들어가는 과정이에요.',
+      sec3: '질문에 바로 답을 주기보다, "너는 어떻게 생각해?"라고 되물어보세요. 스스로 확인하는 힘이 더 빠르게 자라요.',
+      sec4: '확인 질문의 빈도와 내용이 최근 기록에서 일관되게 등장하고 있어요. 어떤 맥락에서 더 자주 나타나는지 살펴보시면 좋아요.',
+      sec5: '새로운 상황이 생기거나, 자신의 행동에 대한 피드백이 없을 때 확인하려는 질문이 더 자주 올라와요.',
+      sec6: '"왜"를 묻고, 반복해서 확인하는 것은 지적 호기심과 관계 감수성이 함께 자라고 있다는 신호예요.',
+      sec7: '확신이 없거나, 자신이 한 것이 받아들여졌는지 불확실한 순간에 감정이 더 크게 움직여요.',
+      sec8: '"네 생각도 말이 돼"처럼 판단 자체를 인정해주는 반응이 이 아이에게 더 잘 닿아요.',
+      sec9: '"네가 골랐으니까 해봐"처럼 판단을 맡겨주는 경험이 쌓이면 자기 확신이 조금씩 생겨요.'
     }
   };
 
-  return texts[axis] || texts.emolang;
+  return T[axis] || T.emolang;
 }
 
 function generateReport() {
-  const records = getCurrentChildRecords();
-  const profile = state.profiles.find(p => p.id === state.currentChildId);
+  var records = getCurrentChildRecords();
+  var profile = state.profiles.find(function(p) { return p.id === state.currentChildId; });
 
-  const waitingState = document.getElementById('report-waiting-state');
+  var waitingState = document.getElementById('report-waiting-state');
   if (waitingState) waitingState.style.display = 'none';
   if (reportContentState) reportContentState.style.display = 'none';
 
   if (!profile || records.length < 10) {
     if (waitingState) waitingState.style.display = 'flex';
-    const wIcon  = document.getElementById('waiting-icon');
-    const wTitle = document.getElementById('waiting-title');
-    const wDesc  = document.getElementById('waiting-desc');
-    const wCount = document.getElementById('waiting-count');
-    const wFill  = document.getElementById('waiting-progress-fill');
+    var wIcon  = document.getElementById('waiting-icon');
+    var wTitle = document.getElementById('waiting-title');
+    var wDesc  = document.getElementById('waiting-desc');
+    var wCount = document.getElementById('waiting-count');
+    var wFill  = document.getElementById('waiting-progress-fill');
     if (records.length < 5) {
       if (wIcon)  wIcon.textContent  = '🌱';
       if (wTitle) wTitle.textContent = '아직 아이를 읽어볼 만큼의 기록이 충분하지 않아요.';
@@ -758,67 +816,55 @@ function generateReport() {
       if (wTitle) wTitle.textContent = '기록이 조금씩 쌓이고 있어요.';
       if (wDesc)  wDesc.textContent  = '10개 이상부터 더 또렷한 흐름을 읽어볼 수 있어요.';
     }
-    if (wCount) wCount.textContent = `지금 ${records.length}개의 기록이 모였어요`;
+    if (wCount) wCount.textContent = '지금 ' + records.length + '개의 기록이 모였어요';
     if (wFill) {
-      const pct = Math.min((records.length / 10) * 100, 100);
-      setTimeout(() => { wFill.style.width = `${pct}%`; }, 50);
+      var pct = Math.min((records.length / 10) * 100, 100);
+      setTimeout(function() { wFill.style.width = pct + '%'; }, 50);
     }
     return;
   }
 
   if (reportContentState) reportContentState.style.display = 'block';
 
-  // 관찰 날짜 기준 정렬 → 최근 10개
-  const sorted = [...records].sort((a, b) => {
-    const dA = a.date || '', dB = b.date || '';
+  var sorted = records.slice().sort(function(a, b) {
+    var dA = a.date || '', dB = b.date || '';
     if (dA !== dB) return dA < dB ? -1 : 1;
     return (a.createdAt || 0) - (b.createdAt || 0);
   });
-  const snap = sorted.slice(-10);
-  const name = profile.name;
+  var snap = sorted.slice(-10);
+  var n = nameP(profile.name);
 
-  // 메타 배너
-  const metaEl = document.getElementById('report-meta-text');
-  if (metaEl) metaEl.textContent = `최근 ${snap.length}개의 기록을 연결해 읽어본 리포트예요.`;
+  var metaEl = document.getElementById('report-meta-text');
+  if (metaEl) metaEl.textContent = '최근 ' + snap.length + '개의 기록을 연결해 읽어본 리포트예요.';
 
-  // 축 감지
-  const [primaryAxis, secondaryAxis] = detectAxes(snap);
-  const primary = getAxisText(primaryAxis, name, snap, false);
-  const secondary = getAxisText(secondaryAxis, name, snap, true);
+  var axes = detectAxes(snap);
+  var primaryAxis   = axes[0];
+  var secondaryAxis = axes[1];
+  var primary   = getAxisText(primaryAxis,   n, snap);
+  var secondary = getAxisText(secondaryAxis, n, snap);
 
-  // 하이라이트 (주 축)
-  const hlEl = document.getElementById('report-highlight-text');
-  if (hlEl) hlEl.textContent = '\u201c' + primary.highlight + '\u201d';
+  var hlEl = document.getElementById('report-highlight-text');
+  if (hlEl) hlEl.textContent = primary.highlight;
 
-  // 무료 섹션 1~3 (주 축)
-  const fill = (id, text) => { const el = document.getElementById(id); if (el) el.textContent = text; };
+  function fill(id, text) { var el = document.getElementById(id); if (el) el.textContent = text; }
   fill('report-sec-1', primary.sec1);
   fill('report-sec-2', primary.sec2);
   fill('report-sec-3', primary.sec3);
-
-  // 프리미엄 섹션 4~9
-  // 4: 변화 흐름 (주 축)
   fill('report-sec-4', primary.sec4);
-  // 5: 상황별 (주 축)
   fill('report-sec-5', primary.sec5);
-  // 6: 힘으로 읽기 (주 축)
   fill('report-sec-6', primary.sec6);
-  // 7: 감정이 움직이는 순간 (보조 축 → 주 축 혼합)
-  fill('report-sec-7', secondary ? `${primary.sec7}\n\n또한, ${secondary.sec7}` : primary.sec7);
-  // 8: 도와주는 방향 (보조 축)
+  fill('report-sec-7', secondary ? primary.sec7 + '\n\n또한, ' + secondary.sec7 : primary.sec7);
   fill('report-sec-8', secondary ? secondary.sec8 : primary.sec8);
-  // 9: 이 힘을 자라게 하려면 (보조 축)
   fill('report-sec-9', secondary ? secondary.sec9 : primary.sec9);
 
-  // 프리미엄 토글 버튼 연결
-  const toggleBtn = document.getElementById('btn-premium-toggle');
-  const premiumContent = document.getElementById('premium-content');
+  var toggleBtn = document.getElementById('btn-premium-toggle');
+  var premiumContent = document.getElementById('premium-content');
   if (toggleBtn && premiumContent && !toggleBtn._bound) {
     toggleBtn._bound = true;
-    toggleBtn.addEventListener('click', () => {
-      const isOpen = premiumContent.style.display !== 'none';
+    toggleBtn.addEventListener('click', function() {
+      var isOpen = premiumContent.style.display !== 'none';
       premiumContent.style.display = isOpen ? 'none' : 'flex';
-      toggleBtn.textContent = isOpen ? '펼쳐보기 ▼' : '접기 ▲';
+      toggleBtn.textContent = isOpen ? '펼쳐보기 \u25bc' : '접기 \u25b2';
     });
   }
 }
